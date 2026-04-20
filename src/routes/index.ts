@@ -6,4 +6,3 @@ const router = Router();
 router.get("/", rootHandler);
 
 export default router;
-// tes

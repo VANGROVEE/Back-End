@@ -1,0 +1,168 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- USER MANAGEMENT ---
+model User {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String           @db.VarChar
+  nickname        String?          @db.VarChar
+  avatar_url      String?          @db.VarChar
+  phone_number    String?          @db.VarChar
+  bio             String?          @db.Text
+  address_home    String?          @db.Text
+  role            String           @db.VarChar // Bisa diubah ke enum jika fix (ADMIN, FARMER, dll)
+  fcm_token       String?          @db.Text
+  created_at      DateTime         @default(now()) @db.Timestamp
+
+  // Relations
+  auth_credentials AuthCredential?
+  lands            Land[]
+  notifications    Notification[]
+  
+  @@map("users")
+}
+
+model AuthCredential {
+  id            String   @id @default(uuid()) @db.Uuid
+  user_id       String   @unique @db.Uuid
+  email         String   @unique @db.VarChar
+  password_hash String   @db.Text
+  last_login    DateTime? @db.Timestamp
+  is_verified   Boolean  @default(false)
+
+  user          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  @@map("auth_credentials")
+}
+
+// --- LAND & PLANTING ---
+model Land {
+  id                String   @id @default(uuid()) @db.Uuid
+  owner_id          String   @db.Uuid
+  name              String   @db.VarChar
+  total_area        Float    @db.Real
+  location          Json?    // Supabase menggunakan PostGIS untuk geography, Prisma biasanya handle lewat Json atau string WKT
+  land_certificate_url String? @db.VarChar
+  created_at        DateTime @default(now()) @db.Timestamp
+
+  owner             User     @relation(fields: [owner_id], references: [id])
+  planting_cycles   PlantingCycle[]
+  
+  @@map("lands")
+}
+
+model PlantingCycle {
+  id                String   @id @default(uuid()) @db.Uuid
+  land_id           String   @db.Uuid
+  commodity_name    String   @db.VarChar
+  variety           String?  @db.VarChar
+  planting_method   String?  @db.VarChar
+  start_date        DateTime @db.Date
+  estimated_harvest DateTime? @db.Date
+  status            String   @db.VarChar // e.g., ACTIVE, HARVESTED, FAILED
+
+  land              Land     @relation(fields: [land_id], references: [id])
+  daily_activities  DailyActivity[]
+  health_reports    HealthReport[]
+  harvest_reports   HarvestReport[]
+  
+  @@map("planting_cycles")
+}
+
+// --- MONITORING ---
+model DailyActivity {
+  id               String   @id @default(uuid()) @db.Uuid
+  cycle_id         String   @db.Uuid
+  activity_type    String   @db.VarChar // e.g., WATERING, FERTILIZING
+  amount           Float?   @db.Real
+  notes            String?  @db.Text
+  weather_condition String? @db.VarChar
+  created_at       DateTime @default(now()) @db.Timestamp
+
+  cycle            PlantingCycle @relation(fields: [cycle_id], references: [id])
+  
+  @@map("daily_activities")
+}
+
+model Disease {
+  id               String   @id @default(uuid()) @db.Uuid
+  name             String   @db.VarChar
+  scientific_name  String?  @db.VarChar
+  description      String?  @db.Text
+  local_treatment  String?  @db.Text
+  preventive_action String? @db.Text
+
+  health_reports   HealthReport[]
+  
+  @@map("diseases")
+}
+
+model HealthReport {
+  id                  String   @id @default(uuid()) @db.Uuid
+  cycle_id            String   @db.Uuid
+  disease_id          String?  @db.Uuid
+  image_url           String?  @db.VarChar
+  confidence_score    Float?   @db.Real
+  gemini_insight      Json?    // Menyimpan hasil analisis AI
+  is_outbreak_trigger Boolean  @default(false)
+  created_at          DateTime @default(now()) @db.Timestamp
+
+  cycle               PlantingCycle @relation(fields: [cycle_id], references: [id])
+  disease             Disease?      @relation(fields: [disease_id], references: [id])
+  
+  @@map("health_reports")
+}
+
+// --- OUTPUT & MARKET ---
+model HarvestReport {
+  id                String   @id @default(uuid()) @db.Uuid
+  cycle_id          String   @unique @db.Uuid
+  total_yield_kg    Float    @db.Real
+  ai_quality_metrics Json?
+  quality_grade     String?  @db.VarChar
+  image_proof_url   String?  @db.VarChar
+  price_sold_per_kg Int?     @db.Integer
+  created_at        DateTime @default(now()) @db.Timestamp
+
+  cycle             PlantingCycle @relation(fields: [cycle_id], references: [id])
+  
+  @@map("harvest_reports")
+}
+
+model MarketPrice {
+  id              String   @id @default(uuid()) @db.Uuid
+  commodity_name  String   @db.VarChar
+  price_min       Int      @db.Integer
+  price_max       Int      @db.Integer
+  region          String   @db.VarChar
+  source          String?  @db.VarChar
+  recorded_at     DateTime @default(now()) @db.Timestamp
+  
+  @@map("market_prices")
+}
+
+model Notification {
+  id          String   @id @default(uuid()) @db.Uuid
+  user_id     String   @db.Uuid
+  title       String   @db.VarChar
+  message     String   @db.Text
+  type        String   @db.VarChar
+  is_read     Boolean  @default(false)
+  created_at  DateTime @default(now()) @db.Timestamp
+
+  user        User     @relation(fields: [user_id], references: [id])
+  
+  @@map("notifications")
+}
