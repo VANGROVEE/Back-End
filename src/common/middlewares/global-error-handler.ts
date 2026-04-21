@@ -34,6 +34,15 @@ export const globalErrorHandler = (
     });
   }
 
+  if (err instanceof SyntaxError && "body" in err) {
+    return res.status(400).json({
+      success: false,
+      status: "failed",
+      type: "BAD_REQUEST",
+      message: "Format JSON tidak valid atau Body kosong!",
+    });
+  }
+
   if (
     error.name === "ZodError" ||
     error.name === "ValidationError" ||
@@ -44,6 +53,7 @@ export const globalErrorHandler = (
       status: "failed",
       type: "VALIDATION_ERROR",
       message: "Input Data Tidak Valid!",
+
       errors: error.issues || error.details || error.message,
     });
   }
@@ -88,7 +98,7 @@ export const globalErrorHandler = (
     return res.status(statusCode).json({
       success: false,
       status: "failed",
-      type: error.name || "HTTP_ERROR",
+      type: error.name === "Error" ? "APP_ERROR" : error.name,
       message: error.message,
     });
   }
@@ -98,7 +108,6 @@ export const globalErrorHandler = (
     status: "error",
     type: "INTERNAL_SERVER_ERROR",
     message: "Terjadi Kesalahan Pada Server. Silahkan Coba Lagi Nanti!",
-
     ...(env.NODE_ENV === "development" && { stack: error.stack }),
   });
 };

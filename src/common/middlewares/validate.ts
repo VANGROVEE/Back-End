@@ -1,8 +1,8 @@
-import type { Request, Response, NextFunction } from "express";
-import type { AnyZodObject } from "zod/v3";
+import type { NextFunction, Request, Response } from "express";
+import type { ZodObject } from "zod";
 
 export const validate =
-  (schema: AnyZodObject) =>
+  (schema: ZodObject) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await schema.parseAsync({
@@ -12,6 +12,6 @@ export const validate =
       });
       return next();
     } catch (error) {
-      return next(error); // Akan ditangkap globalErrorHandler sebagai Validation Error
+      return next(error);
     }
   };

@@ -6,13 +6,18 @@
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
-  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
+  // url = env("DATABASE_URL")
 }
 
+
+enum ROLE {
+  ADMIN
+  FARMER
+}
 // --- USER MANAGEMENT ---
 model User {
   id              String           @id @default(uuid()) @db.Uuid
@@ -22,7 +27,7 @@ model User {
   phone_number    String?          @db.VarChar
   bio             String?          @db.Text
   address_home    String?          @db.Text
-  role            String           @db.VarChar // Bisa diubah ke enum jika fix (ADMIN, FARMER, dll)
+  role            ROLE      // Bisa diubah ke enum jika fix (ADMIN, FARMER, dll)
   fcm_token       String?          @db.Text
   created_at      DateTime         @default(now()) @db.Timestamp
 
@@ -38,7 +43,7 @@ model AuthCredential {
   id            String   @id @default(uuid()) @db.Uuid
   user_id       String   @unique @db.Uuid
   email         String   @unique @db.VarChar
-  password_hash String   @db.Text
+  password_hash String?   @db.Text
   last_login    DateTime? @db.Timestamp
   is_verified   Boolean  @default(false)
 

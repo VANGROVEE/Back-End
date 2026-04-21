@@ -51,7 +51,16 @@ export const AnyNull = runtime.AnyNull
 
 
 export const ModelName = {
-
+  User: 'User',
+  AuthCredential: 'AuthCredential',
+  Land: 'Land',
+  PlantingCycle: 'PlantingCycle',
+  DailyActivity: 'DailyActivity',
+  Disease: 'Disease',
+  HealthReport: 'HealthReport',
+  HarvestReport: 'HarvestReport',
+  MarketPrice: 'MarketPrice',
+  Notification: 'Notification'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -68,4 +77,179 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 } as const)
 
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
+
+
+export const UserScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  nickname: 'nickname',
+  avatar_url: 'avatar_url',
+  phone_number: 'phone_number',
+  bio: 'bio',
+  address_home: 'address_home',
+  role: 'role',
+  fcm_token: 'fcm_token',
+  created_at: 'created_at'
+} as const
+
+export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const AuthCredentialScalarFieldEnum = {
+  id: 'id',
+  user_id: 'user_id',
+  email: 'email',
+  password_hash: 'password_hash',
+  last_login: 'last_login',
+  is_verified: 'is_verified'
+} as const
+
+export type AuthCredentialScalarFieldEnum = (typeof AuthCredentialScalarFieldEnum)[keyof typeof AuthCredentialScalarFieldEnum]
+
+
+export const LandScalarFieldEnum = {
+  id: 'id',
+  owner_id: 'owner_id',
+  name: 'name',
+  total_area: 'total_area',
+  location: 'location',
+  land_certificate_url: 'land_certificate_url',
+  created_at: 'created_at'
+} as const
+
+export type LandScalarFieldEnum = (typeof LandScalarFieldEnum)[keyof typeof LandScalarFieldEnum]
+
+
+export const PlantingCycleScalarFieldEnum = {
+  id: 'id',
+  land_id: 'land_id',
+  commodity_name: 'commodity_name',
+  variety: 'variety',
+  planting_method: 'planting_method',
+  start_date: 'start_date',
+  estimated_harvest: 'estimated_harvest',
+  status: 'status'
+} as const
+
+export type PlantingCycleScalarFieldEnum = (typeof PlantingCycleScalarFieldEnum)[keyof typeof PlantingCycleScalarFieldEnum]
+
+
+export const DailyActivityScalarFieldEnum = {
+  id: 'id',
+  cycle_id: 'cycle_id',
+  activity_type: 'activity_type',
+  amount: 'amount',
+  notes: 'notes',
+  weather_condition: 'weather_condition',
+  created_at: 'created_at'
+} as const
+
+export type DailyActivityScalarFieldEnum = (typeof DailyActivityScalarFieldEnum)[keyof typeof DailyActivityScalarFieldEnum]
+
+
+export const DiseaseScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  scientific_name: 'scientific_name',
+  description: 'description',
+  local_treatment: 'local_treatment',
+  preventive_action: 'preventive_action'
+} as const
+
+export type DiseaseScalarFieldEnum = (typeof DiseaseScalarFieldEnum)[keyof typeof DiseaseScalarFieldEnum]
+
+
+export const HealthReportScalarFieldEnum = {
+  id: 'id',
+  cycle_id: 'cycle_id',
+  disease_id: 'disease_id',
+  image_url: 'image_url',
+  confidence_score: 'confidence_score',
+  gemini_insight: 'gemini_insight',
+  is_outbreak_trigger: 'is_outbreak_trigger',
+  created_at: 'created_at'
+} as const
+
+export type HealthReportScalarFieldEnum = (typeof HealthReportScalarFieldEnum)[keyof typeof HealthReportScalarFieldEnum]
+
+
+export const HarvestReportScalarFieldEnum = {
+  id: 'id',
+  cycle_id: 'cycle_id',
+  total_yield_kg: 'total_yield_kg',
+  ai_quality_metrics: 'ai_quality_metrics',
+  quality_grade: 'quality_grade',
+  image_proof_url: 'image_proof_url',
+  price_sold_per_kg: 'price_sold_per_kg',
+  created_at: 'created_at'
+} as const
+
+export type HarvestReportScalarFieldEnum = (typeof HarvestReportScalarFieldEnum)[keyof typeof HarvestReportScalarFieldEnum]
+
+
+export const MarketPriceScalarFieldEnum = {
+  id: 'id',
+  commodity_name: 'commodity_name',
+  price_min: 'price_min',
+  price_max: 'price_max',
+  region: 'region',
+  source: 'source',
+  recorded_at: 'recorded_at'
+} as const
+
+export type MarketPriceScalarFieldEnum = (typeof MarketPriceScalarFieldEnum)[keyof typeof MarketPriceScalarFieldEnum]
+
+
+export const NotificationScalarFieldEnum = {
+  id: 'id',
+  user_id: 'user_id',
+  title: 'title',
+  message: 'message',
+  type: 'type',
+  is_read: 'is_read',
+  created_at: 'created_at'
+} as const
+
+export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
+
+
+export const SortOrder = {
+  asc: 'asc',
+  desc: 'desc'
+} as const
+
+export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+} as const
+
+export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 

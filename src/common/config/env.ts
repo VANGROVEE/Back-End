@@ -7,6 +7,16 @@ const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
+
+  // Tambahkan validasi string dan URL untuk Supabase
+  SUPABASE_URL: z
+    .string()
+    .url({ message: "SUPABASE_URL harus berupa URL yang valid" }),
+  SUPABASE_SERVICE_ROLE_KEY: z
+    .string()
+    .min(1, { message: "SUPABASE_SERVICE_ROLE_KEY tidak boleh kosong" }),
+  JWT_SECRET: z.string().min(32, "Secret must be at least 32 characters"),
+  JWT_EXPIRES_IN: z.string().default("1d"),
 });
 
 const _env = envSchema.safeParse(process.env);
