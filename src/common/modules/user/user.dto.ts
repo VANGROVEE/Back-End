@@ -1,7 +1,8 @@
+import { registry } from "@/common/docs/openapi-registry";
+import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
-// Jika kamu menggunakan Enum Prisma untuk ROLE, kamu bisa import di sini:
-// import { ROLE } from "@/generated/prisma/client";
 
+extendZodWithOpenApi(z);
 export const updateUserSchema = z.object({
   body: z
     .object({
@@ -37,5 +38,5 @@ export const updateUserSchema = z.object({
       message: "Setidaknya harus ada satu field yang diupdate",
     }),
 });
-
+registry.register("UpdateUserDto", updateUserSchema.shape.body);
 export type UpdateUserDto = z.infer<typeof updateUserSchema>["body"];

@@ -8,6 +8,7 @@ const router = Router();
 router.get("/", rootHandler);
 
 authRoute(router, "/auth");
+
 userRoute(router, "/user");
 
 export default router;
