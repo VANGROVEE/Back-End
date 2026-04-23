@@ -1,6 +1,8 @@
 import type { Express } from "express";
-import swaggerUi from "swagger-ui-express";
+import merge from "lodash/merge"; // Install jika belum: bun add lodash && bun add -d @types/lodash
 import swaggerJSDoc from "swagger-jsdoc";
+import swaggerUi from "swagger-ui-express";
+import { generateOpenApiDocs } from "../docs/openapi-generator";
 
 const options: swaggerJSDoc.Options = {
   definition: {
@@ -12,19 +14,27 @@ const options: swaggerJSDoc.Options = {
     },
     servers: [
       {
-        url: `http://localhost:${process.env.PORT || 8000}`,
+        url: `http://localhost:${process.env.PORT || 8000}/api/v1`,
         description: "Development Server",
       },
     ],
   },
-
-  apis: ["./src/routes/*.ts", "./src/app.ts"],
+  // Tetap baca file .ts untuk mengambil komentar @openapi di Controller/Route
+  apis: [],
 };
 
-const specs = swaggerJSDoc(options);
+// 1. Ambil spesifikasi dari komentar manual JSDoc
+const jscdocSpecs = swaggerJSDoc(options);
+
+// 2. Ambil spesifikasi otomatis dari Zod Registry
+const zodSpecs = generateOpenApiDocs();
+
+// 3. MERGE keduanya (Zod Specs akan mengisi bagian 'components' secara otomatis)
+const finalDocs = merge(jscdocSpecs, zodSpecs);
 
 export const setupSwagger = (app: Express): void => {
-  app.use("/docs", swaggerUi.serve, swaggerUi.setup(specs));
+  // Gunakan finalDocs hasil gabungan
+  app.use("/docs", swaggerUi.serve, swaggerUi.setup(finalDocs));
 
   console.log("📝 [Swagger]: Documentation ready at /docs");
 };
