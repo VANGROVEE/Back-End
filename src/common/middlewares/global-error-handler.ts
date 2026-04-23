@@ -1,6 +1,7 @@
 import { env } from "@config/env";
 import { logger } from "@config/pino";
 import type { NextFunction, Request, Response } from "express";
+import { ZodError } from "zod";
 
 interface AppError extends Error {
   statusCode?: number;
@@ -43,18 +44,19 @@ export const globalErrorHandler = (
     });
   }
 
-  if (
-    error.name === "ZodError" ||
-    error.name === "ValidationError" ||
-    error.isJoi
-  ) {
+  if (error instanceof ZodError) {
+    const formattedErrors = error.issues.map((issue) => ({
+      path: issue.path.join("."),
+      message: issue.message,
+    }));
+
     return res.status(400).json({
       success: false,
       status: "failed",
       type: "VALIDATION_ERROR",
-      message: "Input Data Tidak Valid!",
+      message: "Validasi gagal pada beberapa field",
 
-      errors: error.issues || error.details || error.message,
+      errors: formattedErrors,
     });
   }
 

@@ -87,7 +87,6 @@ export const UserScalarFieldEnum = {
   phone_number: 'phone_number',
   bio: 'bio',
   address_home: 'address_home',
-  role: 'role',
   fcm_token: 'fcm_token',
   created_at: 'created_at'
 } as const
@@ -100,6 +99,7 @@ export const AuthCredentialScalarFieldEnum = {
   user_id: 'user_id',
   email: 'email',
   password_hash: 'password_hash',
+  role: 'role',
   last_login: 'last_login',
   is_verified: 'is_verified'
 } as const

@@ -1,7 +1,6 @@
 import { prisma } from "@/common/config/prisma";
 import { supabase } from "@/common/lib/supabase";
 import { signJwt } from "@/common/utils/jwt";
-import { ROLE } from "@/generated/prisma/enums";
 import bcrypt from "bcrypt";
 
 import { ApiError } from "@/common/utils/api-error";
@@ -33,7 +32,6 @@ export const authService = {
           create: {
             name: user_metadata.full_name ?? "User Vangrove",
             avatar_url: user_metadata.avatar_url ?? "",
-            role: ROLE.FARMER,
           },
         },
       },
@@ -45,7 +43,7 @@ export const authService = {
       sub: account.user.id,
       name: account.user.name,
       email: account.email,
-      role: account.user.role,
+      role: account.role,
     };
 
     const accessToken = await signJwt(jwtPayload);
@@ -64,11 +62,11 @@ export const authService = {
       select: {
         email: true,
         password_hash: true,
+        role: true,
         user: {
           select: {
             id: true,
             name: true,
-            role: true,
           },
         },
       },
@@ -94,7 +92,7 @@ export const authService = {
       sub: account.user.id,
       name: account.user.name,
       email: account.email,
-      role: account.user.role,
+      role: account.role,
     };
 
     const token = await signJwt(jwtPayload);
@@ -105,7 +103,7 @@ export const authService = {
         id: account.user.id,
         name: account.user.name,
         email: account.email,
-        role: account.user.role,
+        role: account.role,
       },
     };
   },
@@ -134,7 +132,6 @@ export const authService = {
         user: {
           create: {
             name,
-            role: ROLE.FARMER,
           },
         },
       },
@@ -145,7 +142,7 @@ export const authService = {
       sub: newAccount.user.id,
       name: newAccount.user.name,
       email: newAccount.email,
-      role: newAccount.user.role,
+      role: newAccount.role,
     };
 
     const token = await signJwt(jwtPayload);
