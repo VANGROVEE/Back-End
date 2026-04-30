@@ -1,6 +1,7 @@
 import { validate } from "@/common/middlewares/validate";
 import { Router } from "express";
 import { authController } from "./auth.controller";
+import "./auth.docs";
 import { googleLoginSchema, loginSchema, registerSchema } from "./auth.dto";
 
 export default (router: Router, prefix: string) => {

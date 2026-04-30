@@ -9,14 +9,14 @@ export const authController = {
     const { token } = req.body as GoogleLoginDto;
     const result = await authService.authenticateGoogleUser(token);
 
-    return sendResponse(res, 200, "Login Google Berhasil", result);
+    return sendResponse(res, 201, "Login Google Berhasil", result);
   }),
 
   login: catchAsync(async (req: Request, res: Response) => {
     const payload = req.body as LoginDto;
     const result = await authService.login(payload);
 
-    return sendResponse(res, 200, "Login Berhasil", result);
+    return sendResponse(res, 201, "Login Berhasil", result);
   }),
 
   register: catchAsync(async (req: Request, res: Response) => {

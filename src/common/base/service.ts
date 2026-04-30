@@ -8,10 +8,7 @@ export type PrismaDelegate = {
   delete: (args: never) => Promise<unknown>;
 };
 
-export abstract class BaseService<
-  T, // 1. Tipe Model (contoh: User)
-  D extends PrismaDelegate, // 2. Tipe Delegasi (contoh: typeof prisma.user)
-> {
+export abstract class BaseService<T, D extends PrismaDelegate> {
   constructor(protected model: D) {}
 
   async findAll(args?: Parameters<D["findMany"]>[0]): Promise<T[]> {
@@ -31,8 +28,6 @@ export abstract class BaseService<
     return data as T;
   }
 
-  // ✅ SUPER MODERN:
-  // TS otomatis mencari tipe "data" yang diizinkan untuk di-insert ke tabel ini!
   async create(
     payload: Parameters<D["create"]>[0]["data"],
     args?: Omit<Parameters<D["create"]>[0], "data">,
@@ -43,8 +38,6 @@ export abstract class BaseService<
     } as never)) as T;
   }
 
-  // ✅ SUPER MODERN:
-  // TS otomatis tahu field apa saja yang boleh di-update di tabel ini!
   async update(
     id: string,
     payload: Parameters<D["update"]>[0]["data"],
