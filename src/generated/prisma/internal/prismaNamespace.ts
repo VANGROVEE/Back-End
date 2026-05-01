@@ -1252,8 +1252,10 @@ export const DailyActivityScalarFieldEnum = {
   cycle_id: 'cycle_id',
   activity_type: 'activity_type',
   amount: 'amount',
+  weather_data: 'weather_data',
+  unit: 'unit',
   notes: 'notes',
-  weather_condition: 'weather_condition',
+  activity_date: 'activity_date',
   created_at: 'created_at'
 } as const
 

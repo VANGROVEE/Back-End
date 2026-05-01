@@ -21,6 +21,7 @@ app.use(express.urlencoded({ extended: false }));
 setupSwagger(app);
 
 app.use("/api/v1", router);
-app.use(notFoundHandler);
 
+app.use(notFoundHandler);
 app.use(globalErrorHandler);
+

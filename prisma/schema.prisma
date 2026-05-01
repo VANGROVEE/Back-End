@@ -82,21 +82,28 @@ model PlantingCycle {
   daily_activities  DailyActivity[]
   health_reports    HealthReport[]
   harvest_reports   HarvestReport[]
-  
+
+  @@unique([land_id, start_date])
   @@map("planting_cycles")
 }
 
 
 model DailyActivity {
-  id               String   @id @default(uuid()) @db.Uuid
-  cycle_id         String   @db.Uuid
-  activity_type    String   @db.VarChar 
-  amount           Float?   @db.Real
-  notes            String?  @db.Text
-  weather_condition String? @db.VarChar
-  created_at       DateTime @default(now()) @db.Timestamp
+  id                String   @id @default(uuid()) @db.Uuid
+  cycle_id          String   @db.Uuid
+  activity_type     String   @db.VarChar 
+  amount            Float?   @db.Real
+  weather_data      Json?    
+  unit              String?  @db.VarChar 
+  notes             String?  @db.Text
+  
+  activity_date     DateTime @db.Date 
+  
+  created_at        DateTime @default(now()) @db.Timestamp
 
-  cycle            PlantingCycle @relation(fields: [cycle_id], references: [id])
+  cycle             PlantingCycle @relation(fields: [cycle_id], references: [id])
+  
+  @@unique([cycle_id, activity_date, activity_type])
   
   @@map("daily_activities")
 }
