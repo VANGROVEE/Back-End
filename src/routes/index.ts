@@ -1,3 +1,4 @@
+import aiRecommendationRoute from "@/common/modules/ai-recommendation/ai-recommendation.route";
 import authRoute from "@/common/modules/auth/auth.route";
 import dailyActivityRoute from "@/common/modules/daily-activity/daily-activity.route";
 import landRoute from "@/common/modules/land/land.route";
@@ -16,6 +17,8 @@ userRoute(router, "/user");
 
 landRoute(router, "/land");
 plantingCycleRoute(router, "/planting-cycle");
+
+aiRecommendationRoute(router, "/ai-recommendation");
 
 dailyActivityRoute(router, "/daily-activities");
 export default router;

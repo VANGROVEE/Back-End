@@ -389,6 +389,7 @@ export const ModelName = {
   Land: 'Land',
   PlantingCycle: 'PlantingCycle',
   DailyActivity: 'DailyActivity',
+  AiRecommendationLog: 'AiRecommendationLog',
   Disease: 'Disease',
   HealthReport: 'HealthReport',
   HarvestReport: 'HarvestReport',
@@ -409,7 +410,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "authCredential" | "land" | "plantingCycle" | "dailyActivity" | "disease" | "healthReport" | "harvestReport" | "marketPrice" | "notification"
+    modelProps: "user" | "authCredential" | "land" | "plantingCycle" | "dailyActivity" | "aiRecommendationLog" | "disease" | "healthReport" | "harvestReport" | "marketPrice" | "notification"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -780,6 +781,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.DailyActivityCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.DailyActivityCountAggregateOutputType> | number
+        }
+      }
+    }
+    AiRecommendationLog: {
+      payload: Prisma.$AiRecommendationLogPayload<ExtArgs>
+      fields: Prisma.AiRecommendationLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AiRecommendationLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AiRecommendationLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload>
+        }
+        findFirst: {
+          args: Prisma.AiRecommendationLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AiRecommendationLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload>
+        }
+        findMany: {
+          args: Prisma.AiRecommendationLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload>[]
+        }
+        create: {
+          args: Prisma.AiRecommendationLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload>
+        }
+        createMany: {
+          args: Prisma.AiRecommendationLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AiRecommendationLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload>[]
+        }
+        delete: {
+          args: Prisma.AiRecommendationLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload>
+        }
+        update: {
+          args: Prisma.AiRecommendationLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.AiRecommendationLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AiRecommendationLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AiRecommendationLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.AiRecommendationLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload>
+        }
+        aggregate: {
+          args: Prisma.AiRecommendationLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAiRecommendationLog>
+        }
+        groupBy: {
+          args: Prisma.AiRecommendationLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiRecommendationLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AiRecommendationLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiRecommendationLogCountAggregateOutputType> | number
         }
       }
     }
@@ -1262,6 +1337,18 @@ export const DailyActivityScalarFieldEnum = {
 export type DailyActivityScalarFieldEnum = (typeof DailyActivityScalarFieldEnum)[keyof typeof DailyActivityScalarFieldEnum]
 
 
+export const AiRecommendationLogScalarFieldEnum = {
+  id: 'id',
+  cycle_id: 'cycle_id',
+  recommendation_date: 'recommendation_date',
+  ai_response: 'ai_response',
+  context_used: 'context_used',
+  created_at: 'created_at'
+} as const
+
+export type AiRecommendationLogScalarFieldEnum = (typeof AiRecommendationLogScalarFieldEnum)[keyof typeof AiRecommendationLogScalarFieldEnum]
+
+
 export const DiseaseScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -1342,6 +1429,13 @@ export const NullableJsonNullValueInput = {
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {
@@ -1580,6 +1674,7 @@ export type GlobalOmitConfig = {
   land?: Prisma.LandOmit
   plantingCycle?: Prisma.PlantingCycleOmit
   dailyActivity?: Prisma.DailyActivityOmit
+  aiRecommendationLog?: Prisma.AiRecommendationLogOmit
   disease?: Prisma.DiseaseOmit
   healthReport?: Prisma.HealthReportOmit
   harvestReport?: Prisma.HarvestReportOmit

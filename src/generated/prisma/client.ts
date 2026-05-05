@@ -67,6 +67,11 @@ export type PlantingCycle = Prisma.PlantingCycleModel
  */
 export type DailyActivity = Prisma.DailyActivityModel
 /**
+ * Model AiRecommendationLog
+ * 
+ */
+export type AiRecommendationLog = Prisma.AiRecommendationLogModel
+/**
  * Model Disease
  * 
  */

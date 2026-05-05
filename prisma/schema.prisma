@@ -1,8 +1,3 @@
-
-
-
-
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,9 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  
 }
-
 
 enum ROLE {
   ADMIN
@@ -20,104 +13,119 @@ enum ROLE {
 }
 
 model User {
-  id              String           @id @default(uuid()) @db.Uuid
-  name            String           @db.VarChar
-  nickname        String?          @db.VarChar
-  avatar_url      String?          @db.VarChar
-  phone_number    String?          @db.VarChar
-  bio             String?          @db.Text
-  address_home    String?          @db.Text
-  fcm_token       String?          @db.Text
-  created_at      DateTime         @default(now()) @db.Timestamp
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @db.VarChar
+  nickname     String?  @db.VarChar
+  avatar_url   String?  @db.VarChar
+  phone_number String?  @db.VarChar
+  bio          String?  @db.Text
+  address_home String?  @db.Text
+  fcm_token    String?  @db.Text
+  created_at   DateTime @default(now()) @db.Timestamp
 
-  
   auth_credentials AuthCredential?
   lands            Land[]
   notifications    Notification[]
-  
+
   @@map("users")
 }
 
 model AuthCredential {
-  id            String   @id @default(uuid()) @db.Uuid
-  user_id       String   @unique @db.Uuid
-  email         String   @unique @db.VarChar
+  id            String    @id @default(uuid()) @db.Uuid
+  user_id       String    @unique @db.Uuid
+  email         String    @unique @db.VarChar
   password_hash String?   @db.Text
-  role            ROLE     @default(FARMER)
+  role          ROLE      @default(FARMER)
   last_login    DateTime? @db.Timestamp
-  is_verified   Boolean  @default(false)
+  is_verified   Boolean   @default(false)
 
-  user          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
   @@map("auth_credentials")
 }
 
-
 model Land {
-  id                String   @id @default(uuid()) @db.Uuid
-  owner_id          String   @db.Uuid
-  name              String   @db.VarChar
-  total_area        Float    @db.Real
-  location          Json?    
-  land_certificate_url String? @db.VarChar
-  created_at        DateTime @default(now()) @db.Timestamp
+  id                   String   @id @default(uuid()) @db.Uuid
+  owner_id             String   @db.Uuid
+  name                 String   @db.VarChar
+  total_area           Float    @db.Real
+  location             Json?
+  land_certificate_url String?  @db.VarChar
+  created_at           DateTime @default(now()) @db.Timestamp
 
-  owner             User     @relation(fields: [owner_id], references: [id])
-  planting_cycles   PlantingCycle[]
-  
+  owner           User            @relation(fields: [owner_id], references: [id])
+  planting_cycles PlantingCycle[]
+
   @@map("lands")
 }
 
 model PlantingCycle {
-  id                String   @id @default(uuid()) @db.Uuid
-  land_id           String   @db.Uuid
-  commodity_name    String   @db.VarChar
-  variety           String?  @db.VarChar
-  planting_method   String?  @db.VarChar
-  start_date        DateTime @db.Date
+  id                String    @id @default(uuid()) @db.Uuid
+  land_id           String    @db.Uuid
+  commodity_name    String    @db.VarChar
+  variety           String?   @db.VarChar
+  planting_method   String?   @db.VarChar
+  start_date        DateTime  @db.Date
   estimated_harvest DateTime? @db.Date
-  status            String   @db.VarChar 
+  status            String    @db.VarChar
 
-  land              Land     @relation(fields: [land_id], references: [id])
-  daily_activities  DailyActivity[]
-  health_reports    HealthReport[]
-  harvest_reports   HarvestReport[]
+  land                 Land                  @relation(fields: [land_id], references: [id])
+  daily_activities     DailyActivity[]
+  health_reports       HealthReport[]
+  harvest_reports      HarvestReport[]
+  aiRecommendationLogs AiRecommendationLog[]
 
   @@unique([land_id, start_date])
   @@map("planting_cycles")
 }
 
-
 model DailyActivity {
-  id                String   @id @default(uuid()) @db.Uuid
-  cycle_id          String   @db.Uuid
-  activity_type     String   @db.VarChar 
-  amount            Float?   @db.Real
-  weather_data      Json?    
-  unit              String?  @db.VarChar 
-  notes             String?  @db.Text
-  
-  activity_date     DateTime @db.Date 
-  
-  created_at        DateTime @default(now()) @db.Timestamp
+  id            String  @id @default(uuid()) @db.Uuid
+  cycle_id      String  @db.Uuid
+  activity_type String  @db.VarChar
+  amount        Float?  @db.Real
+  weather_data  Json?
+  unit          String? @db.VarChar
+  notes         String? @db.Text
 
-  cycle             PlantingCycle @relation(fields: [cycle_id], references: [id])
-  
+  activity_date DateTime @db.Date
+
+  created_at DateTime @default(now()) @db.Timestamp
+
+  cycle PlantingCycle @relation(fields: [cycle_id], references: [id])
+
   @@unique([cycle_id, activity_date, activity_type])
-  
   @@map("daily_activities")
 }
 
+model AiRecommendationLog {
+  id       String @id @default(uuid()) @db.Uuid
+  cycle_id String @db.Uuid
+
+  recommendation_date DateTime @db.Date
+
+  ai_response Json
+
+  context_used Json?
+
+  created_at DateTime @default(now()) @db.Timestamp
+
+  cycle PlantingCycle @relation(fields: [cycle_id], references: [id], onDelete: Cascade)
+
+  @@unique([cycle_id, recommendation_date])
+  @@map("ai_recommendation_logs")
+}
+
 model Disease {
-  id               String   @id @default(uuid()) @db.Uuid
-  name             String   @db.VarChar
-  scientific_name  String?  @db.VarChar
-  description      String?  @db.Text
-  local_treatment  String?  @db.Text
+  id                String  @id @default(uuid()) @db.Uuid
+  name              String  @db.VarChar
+  scientific_name   String? @db.VarChar
+  description       String? @db.Text
+  local_treatment   String? @db.Text
   preventive_action String? @db.Text
 
-  health_reports   HealthReport[]
-  
+  health_reports HealthReport[]
+
   @@map("diseases")
 }
 
@@ -127,54 +135,53 @@ model HealthReport {
   disease_id          String?  @db.Uuid
   image_url           String?  @db.VarChar
   confidence_score    Float?   @db.Real
-  gemini_insight      Json?    
+  gemini_insight      Json?
   is_outbreak_trigger Boolean  @default(false)
   created_at          DateTime @default(now()) @db.Timestamp
 
-  cycle               PlantingCycle @relation(fields: [cycle_id], references: [id])
-  disease             Disease?      @relation(fields: [disease_id], references: [id])
-  
+  cycle   PlantingCycle @relation(fields: [cycle_id], references: [id])
+  disease Disease?      @relation(fields: [disease_id], references: [id])
+
   @@map("health_reports")
 }
 
-
 model HarvestReport {
-  id                String   @id @default(uuid()) @db.Uuid
-  cycle_id          String   @unique @db.Uuid
-  total_yield_kg    Float    @db.Real
+  id                 String   @id @default(uuid()) @db.Uuid
+  cycle_id           String   @unique @db.Uuid
+  total_yield_kg     Float    @db.Real
   ai_quality_metrics Json?
-  quality_grade     String?  @db.VarChar
-  image_proof_url   String?  @db.VarChar
-  price_sold_per_kg Int?     @db.Integer
-  created_at        DateTime @default(now()) @db.Timestamp
+  quality_grade      String?  @db.VarChar
+  image_proof_url    String?  @db.VarChar
+  price_sold_per_kg  Int?     @db.Integer
+  created_at         DateTime @default(now()) @db.Timestamp
 
-  cycle             PlantingCycle @relation(fields: [cycle_id], references: [id])
-  
+  cycle PlantingCycle @relation(fields: [cycle_id], references: [id])
+
   @@map("harvest_reports")
 }
 
 model MarketPrice {
-  id              String   @id @default(uuid()) @db.Uuid
-  commodity_name  String   @db.VarChar
-  price_min       Int      @db.Integer
-  price_max       Int      @db.Integer
-  region          String   @db.VarChar
-  source          String?  @db.VarChar
-  recorded_at     DateTime @default(now()) @db.Timestamp
-  
+  id             String   @id @default(uuid()) @db.Uuid
+  commodity_name String   @db.VarChar
+  price_min      Int      @db.Integer
+  price_max      Int      @db.Integer
+  region         String   @db.VarChar
+  source         String?  @db.VarChar
+  recorded_at    DateTime @default(now()) @db.Timestamp
+
   @@map("market_prices")
 }
 
 model Notification {
-  id          String   @id @default(uuid()) @db.Uuid
-  user_id     String   @db.Uuid
-  title       String   @db.VarChar
-  message     String   @db.Text
-  type        String   @db.VarChar
-  is_read     Boolean  @default(false)
-  created_at  DateTime @default(now()) @db.Timestamp
+  id         String   @id @default(uuid()) @db.Uuid
+  user_id    String   @db.Uuid
+  title      String   @db.VarChar
+  message    String   @db.Text
+  type       String   @db.VarChar
+  is_read    Boolean  @default(false)
+  created_at DateTime @default(now()) @db.Timestamp
 
-  user        User     @relation(fields: [user_id], references: [id])
-  
+  user User @relation(fields: [user_id], references: [id])
+
   @@map("notifications")
 }

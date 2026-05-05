@@ -56,6 +56,7 @@ export const ModelName = {
   Land: 'Land',
   PlantingCycle: 'PlantingCycle',
   DailyActivity: 'DailyActivity',
+  AiRecommendationLog: 'AiRecommendationLog',
   Disease: 'Disease',
   HealthReport: 'HealthReport',
   HarvestReport: 'HarvestReport',
@@ -149,6 +150,18 @@ export const DailyActivityScalarFieldEnum = {
 export type DailyActivityScalarFieldEnum = (typeof DailyActivityScalarFieldEnum)[keyof typeof DailyActivityScalarFieldEnum]
 
 
+export const AiRecommendationLogScalarFieldEnum = {
+  id: 'id',
+  cycle_id: 'cycle_id',
+  recommendation_date: 'recommendation_date',
+  ai_response: 'ai_response',
+  context_used: 'context_used',
+  created_at: 'created_at'
+} as const
+
+export type AiRecommendationLogScalarFieldEnum = (typeof AiRecommendationLogScalarFieldEnum)[keyof typeof AiRecommendationLogScalarFieldEnum]
+
+
 export const DiseaseScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -229,6 +242,13 @@ export const NullableJsonNullValueInput = {
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {
