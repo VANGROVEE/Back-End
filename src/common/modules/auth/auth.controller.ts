@@ -1,17 +1,10 @@
 import { catchAsync } from "@/common/utils/express-async-errors";
 import { sendResponse } from "@/common/utils/response";
 import type { Request, Response } from "express";
-import type { GoogleLoginDto, LoginDto, RegisterDto } from "./auth.dto";
+import type { LoginDto, RegisterDto } from "./auth.dto";
 import { authService } from "./auth.service";
 
 export const authController = {
-  authenticateGoogleUser: catchAsync(async (req: Request, res: Response) => {
-    const { token } = req.body as GoogleLoginDto;
-    const result = await authService.authenticateGoogleUser(token);
-
-    return sendResponse(res, 201, "Login Google Berhasil", result);
-  }),
-
   login: catchAsync(async (req: Request, res: Response) => {
     const payload = req.body as LoginDto;
     const result = await authService.login(payload);

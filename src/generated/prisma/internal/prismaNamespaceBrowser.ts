@@ -52,7 +52,6 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
-  AuthCredential: 'AuthCredential',
   Land: 'Land',
   PlantingCycle: 'PlantingCycle',
   DailyActivity: 'DailyActivity',
@@ -89,23 +88,12 @@ export const UserScalarFieldEnum = {
   bio: 'bio',
   address_home: 'address_home',
   fcm_token: 'fcm_token',
+  email: 'email',
+  role: 'role',
   created_at: 'created_at'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
-
-
-export const AuthCredentialScalarFieldEnum = {
-  id: 'id',
-  user_id: 'user_id',
-  email: 'email',
-  password_hash: 'password_hash',
-  role: 'role',
-  last_login: 'last_login',
-  is_verified: 'is_verified'
-} as const
-
-export type AuthCredentialScalarFieldEnum = (typeof AuthCredentialScalarFieldEnum)[keyof typeof AuthCredentialScalarFieldEnum]
 
 
 export const LandScalarFieldEnum = {

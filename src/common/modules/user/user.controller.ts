@@ -7,10 +7,7 @@ import { userServices } from "./user.service";
 
 export const userController = {
   findAll: catchAsync(async (req: Request, res: Response) => {
-    const result = await userServices.findAll({
-      select: userServices.userAdminSelect,
-      
-    });
+    const result = await userServices.findAll();
 
     return sendResponse(res, 200, "Berhasil mengambil semua user", result);
   }),
@@ -25,7 +22,7 @@ export const userController = {
     return sendResponse(res, 200, "User ditemukan", result);
   }),
 
-  update: catchAsync(async (req: Request, res: Response) => { 
+  update: catchAsync(async (req: Request, res: Response) => {
     const { id } = req.params;
 
     if (!id) throw new ApiError(400, "Parameter ID wajib dikirim");

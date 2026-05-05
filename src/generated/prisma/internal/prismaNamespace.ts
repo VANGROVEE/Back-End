@@ -385,7 +385,6 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   User: 'User',
-  AuthCredential: 'AuthCredential',
   Land: 'Land',
   PlantingCycle: 'PlantingCycle',
   DailyActivity: 'DailyActivity',
@@ -410,7 +409,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "authCredential" | "land" | "plantingCycle" | "dailyActivity" | "aiRecommendationLog" | "disease" | "healthReport" | "harvestReport" | "marketPrice" | "notification"
+    modelProps: "user" | "land" | "plantingCycle" | "dailyActivity" | "aiRecommendationLog" | "disease" | "healthReport" | "harvestReport" | "marketPrice" | "notification"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -485,80 +484,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserCountAggregateOutputType> | number
-        }
-      }
-    }
-    AuthCredential: {
-      payload: Prisma.$AuthCredentialPayload<ExtArgs>
-      fields: Prisma.AuthCredentialFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.AuthCredentialFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.AuthCredentialFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload>
-        }
-        findFirst: {
-          args: Prisma.AuthCredentialFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.AuthCredentialFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload>
-        }
-        findMany: {
-          args: Prisma.AuthCredentialFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload>[]
-        }
-        create: {
-          args: Prisma.AuthCredentialCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload>
-        }
-        createMany: {
-          args: Prisma.AuthCredentialCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.AuthCredentialCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload>[]
-        }
-        delete: {
-          args: Prisma.AuthCredentialDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload>
-        }
-        update: {
-          args: Prisma.AuthCredentialUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload>
-        }
-        deleteMany: {
-          args: Prisma.AuthCredentialDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.AuthCredentialUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.AuthCredentialUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload>[]
-        }
-        upsert: {
-          args: Prisma.AuthCredentialUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload>
-        }
-        aggregate: {
-          args: Prisma.AuthCredentialAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateAuthCredential>
-        }
-        groupBy: {
-          args: Prisma.AuthCredentialGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AuthCredentialGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.AuthCredentialCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AuthCredentialCountAggregateOutputType> | number
         }
       }
     }
@@ -1276,23 +1201,12 @@ export const UserScalarFieldEnum = {
   bio: 'bio',
   address_home: 'address_home',
   fcm_token: 'fcm_token',
+  email: 'email',
+  role: 'role',
   created_at: 'created_at'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
-
-
-export const AuthCredentialScalarFieldEnum = {
-  id: 'id',
-  user_id: 'user_id',
-  email: 'email',
-  password_hash: 'password_hash',
-  role: 'role',
-  last_login: 'last_login',
-  is_verified: 'is_verified'
-} as const
-
-export type AuthCredentialScalarFieldEnum = (typeof AuthCredentialScalarFieldEnum)[keyof typeof AuthCredentialScalarFieldEnum]
 
 
 export const LandScalarFieldEnum = {
@@ -1484,20 +1398,6 @@ export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaMod
 
 
 /**
- * Reference to a field of type 'DateTime'
- */
-export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
-    
-
-
-/**
- * Reference to a field of type 'DateTime[]'
- */
-export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
-    
-
-
-/**
  * Reference to a field of type 'ROLE'
  */
 export type EnumROLEFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ROLE'>
@@ -1512,9 +1412,16 @@ export type ListEnumROLEFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
 
 
 /**
- * Reference to a field of type 'Boolean'
+ * Reference to a field of type 'DateTime'
  */
-export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
+    
+
+
+/**
+ * Reference to a field of type 'DateTime[]'
+ */
+export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
     
 
 
@@ -1543,6 +1450,13 @@ export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'J
  * Reference to a field of type 'QueryMode'
  */
 export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
+ * Reference to a field of type 'Boolean'
+ */
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -1670,7 +1584,6 @@ export type PrismaClientOptions = ({
 }
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
-  authCredential?: Prisma.AuthCredentialOmit
   land?: Prisma.LandOmit
   plantingCycle?: Prisma.PlantingCycleOmit
   dailyActivity?: Prisma.DailyActivityOmit
