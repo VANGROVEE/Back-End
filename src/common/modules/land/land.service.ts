@@ -7,16 +7,57 @@ import {
   isLandOverlapping,
 } from "@/common/utils/geo";
 import type { Land } from "@/generated/prisma/client";
-import type { CreateLandDto } from "./land.dto";
+import type { CreateLandDto, UpdateLandDto } from "./land.dto";
 
 class LandSerivces extends BaseService<Land, typeof prisma.land> {
   constructor() {
     super(prisma.land);
   }
+
   async createLand(userId: string, data: CreateLandDto) {
-    const radiusBaru = getRadiusFromArea(data.total_area);
+    await this.validateOverlap(data.location, data.total_area);
+
+    return await prisma.land.create({
+      data: {
+        ...data,
+        owner_id: userId,
+      },
+    });
+  }
+
+  override async update(id: string, data: UpdateLandDto) {
+    const currentLand = await prisma.land.findUnique({
+      where: { id },
+    });
+
+    if (!currentLand) {
+      throw new ApiError(404, "Lahan tidak ditemukan.");
+    }
+
+    if (data.location || data.total_area) {
+      const newLocation = data.location || (currentLand.location as any);
+      const newArea = data.total_area || currentLand.total_area;
+
+      await this.validateOverlap(newLocation, newArea, id);
+    }
+
+    return await prisma.land.update({
+      where: { id },
+      data,
+    });
+  }
+
+  private async validateOverlap(
+    location: { latitude: number; longitude: number },
+    totalArea: number,
+    excludeId?: string,
+  ) {
+    const radiusBaru = getRadiusFromArea(totalArea);
 
     const existingLands = await prisma.land.findMany({
+      where: {
+        id: excludeId ? { not: excludeId } : undefined,
+      },
       select: {
         id: true,
         name: true,
@@ -33,14 +74,12 @@ class LandSerivces extends BaseService<Land, typeof prisma.land> {
         typeof loc.latitude !== "number" ||
         typeof loc.longitude !== "number"
       ) {
-        console.warn(
-          `Data lahan ID ${land.id} memiliki lokasi yang tidak valid.`,
-        );
         continue;
       }
+
       const jarakPusat = calculateDistance(
-        data.location.latitude,
-        data.location.longitude,
+        location.latitude,
+        location.longitude,
         loc.latitude,
         loc.longitude,
       );
@@ -50,17 +89,10 @@ class LandSerivces extends BaseService<Land, typeof prisma.land> {
       if (isLandOverlapping(jarakPusat, radiusBaru, radiusLama)) {
         throw new ApiError(
           400,
-          `Gagal mendaftar! Area ini bersinggungan dengan lahan '${land.name}'`,
+          `Gagal memperbarui! Koordinat/luas baru bersinggungan dengan lahan '${land.name}'`,
         );
       }
     }
-
-    return await prisma.land.create({
-      data: {
-        ...data,
-        owner_id: userId,
-      },
-    });
   }
 }
 

@@ -9,10 +9,10 @@
  * 🟢 You can import this file directly.
  */
 export type * from './models/User.ts'
-export type * from './models/AuthCredential.ts'
 export type * from './models/Land.ts'
 export type * from './models/PlantingCycle.ts'
 export type * from './models/DailyActivity.ts'
+export type * from './models/AiRecommendationLog.ts'
 export type * from './models/Disease.ts'
 export type * from './models/HealthReport.ts'
 export type * from './models/HarvestReport.ts'

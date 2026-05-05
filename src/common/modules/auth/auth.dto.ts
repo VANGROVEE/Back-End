@@ -1,42 +1,44 @@
-import { registry } from "@/common/docs/openapi-registry";
 import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
 
 extendZodWithOpenApi(z);
+
+// 1. Schema Dasar untuk Login
+// auth.dto.ts
 export const loginSchema = z.object({
   body: z.object({
     email: z
       .string()
-      .min(1, "Email wajib diisi")
-      .email("Format email tidak valid"),
-    password: z.string().min(6, "Password minimal 6 karakter"),
+      .email("Format email tidak valid")
+      .openapi({ example: "budi@vangrove.com" }), // Contoh email
+    password: z.string().min(6).openapi({ example: "secretpassword123" }), // Contoh password
   }),
 });
 
 export const googleLoginSchema = z.object({
   body: z.object({
-    token: z.string().min(1, "Token Google wajib dikirim"),
+    token: z.string().openapi({ example: "eyJhbGciOiJSUzI1NiIsImtpZCI6..." }), // Contoh JWT Google
   }),
 });
 
 export const registerSchema = z
   .object({
     body: z.object({
-      name: z.string().min(3, "Nama minimal 3 karakter"),
-      email: z.string().email("Format email tidak valid"),
-      password: z.string().min(6, "Password minimal 6 karakter"),
-      confirmPassword: z.string(),
+      name: z.string().openapi({ example: "Budi Petani Modern" }),
+      email: z.string().email().openapi({ example: "budi@vangrove.com" }),
+      password: z.string().min(6).openapi({ example: "secretpassword123" }),
+      confirmPassword: z.string().openapi({ example: "secretpassword123" }),
     }),
   })
   .refine((data) => data.body.password === data.body.confirmPassword, {
     message: "Konfirmasi password tidak cocok",
-    path: ["body", "confirmPassword"],
+    path: ["confirmPassword"],
   });
-
-registry.register("authLoginDto", loginSchema.shape.body);
-registry.register("authRegisterDto", registerSchema.shape.body);
-registry.register("authGooggleDto", googleLoginSchema.shape.body);
-
-export type RegisterDto = z.infer<typeof registerSchema>["body"];
-export type GoogleLoginDto = z.infer<typeof googleLoginSchema>["body"];
 export type LoginDto = z.infer<typeof loginSchema>["body"];
+export type GoogleLoginDto = z.infer<typeof googleLoginSchema>["body"];
+
+// Untuk RegisterDto, kita omit confirmPassword karena service tidak membutuhkannya
+export type RegisterDto = Omit<
+  z.infer<typeof registerSchema>["body"],
+  "confirmPassword"
+>;
