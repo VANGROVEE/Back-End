@@ -47,11 +47,6 @@ export { Prisma }
  */
 export type User = Prisma.UserModel
 /**
- * Model AuthCredential
- * 
- */
-export type AuthCredential = Prisma.AuthCredentialModel
-/**
  * Model Land
  * 
  */
@@ -66,6 +61,11 @@ export type PlantingCycle = Prisma.PlantingCycleModel
  * 
  */
 export type DailyActivity = Prisma.DailyActivityModel
+/**
+ * Model AiRecommendationLog
+ * 
+ */
+export type AiRecommendationLog = Prisma.AiRecommendationLogModel
 /**
  * Model Disease
  * 

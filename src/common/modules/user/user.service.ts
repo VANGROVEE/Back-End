@@ -9,13 +9,8 @@ class UserService extends BaseService<User, typeof prisma.user> {
   };
 
   public readonly userAdminSelect: Prisma.UserSelect = {
-    id: true,
-    name: true,
     _count: {
-      select: { lands: true }, // Menghitung jumlah lahan tanpa menarik semua datanya
-    },
-    auth_credentials: {
-      select: { email: true, role: true }, // Mengambil email dari tabel sebelah
+      select: { lands: true },
     },
   };
   constructor() {

@@ -1,3 +1,4 @@
+import { authenticate } from "@/common/middlewares/auth";
 import { validate } from "@/common/middlewares/validate";
 import { commonSchema } from "@/common/utils/schema";
 import { Router } from "express";
@@ -5,9 +6,9 @@ import { userController } from "./user.controller";
 import "./user.docs";
 import { updateUserSchema } from "./user.dto";
 export default (router: Router, prefix: string) => {
-  router.get(prefix, userController.findAll);
+  router.get(prefix, authenticate, userController.findAll);
 
-  router.get(`${prefix}/:id`, userController.findOne);
+  router.get(`${prefix}/:id`, authenticate, userController.findOne);
 
   router.patch(
     `${prefix}/:id`,

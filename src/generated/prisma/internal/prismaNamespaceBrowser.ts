@@ -52,10 +52,10 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
-  AuthCredential: 'AuthCredential',
   Land: 'Land',
   PlantingCycle: 'PlantingCycle',
   DailyActivity: 'DailyActivity',
+  AiRecommendationLog: 'AiRecommendationLog',
   Disease: 'Disease',
   HealthReport: 'HealthReport',
   HarvestReport: 'HarvestReport',
@@ -88,23 +88,12 @@ export const UserScalarFieldEnum = {
   bio: 'bio',
   address_home: 'address_home',
   fcm_token: 'fcm_token',
+  email: 'email',
+  role: 'role',
   created_at: 'created_at'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
-
-
-export const AuthCredentialScalarFieldEnum = {
-  id: 'id',
-  user_id: 'user_id',
-  email: 'email',
-  password_hash: 'password_hash',
-  role: 'role',
-  last_login: 'last_login',
-  is_verified: 'is_verified'
-} as const
-
-export type AuthCredentialScalarFieldEnum = (typeof AuthCredentialScalarFieldEnum)[keyof typeof AuthCredentialScalarFieldEnum]
 
 
 export const LandScalarFieldEnum = {
@@ -139,12 +128,26 @@ export const DailyActivityScalarFieldEnum = {
   cycle_id: 'cycle_id',
   activity_type: 'activity_type',
   amount: 'amount',
+  weather_data: 'weather_data',
+  unit: 'unit',
   notes: 'notes',
-  weather_condition: 'weather_condition',
+  activity_date: 'activity_date',
   created_at: 'created_at'
 } as const
 
 export type DailyActivityScalarFieldEnum = (typeof DailyActivityScalarFieldEnum)[keyof typeof DailyActivityScalarFieldEnum]
+
+
+export const AiRecommendationLogScalarFieldEnum = {
+  id: 'id',
+  cycle_id: 'cycle_id',
+  recommendation_date: 'recommendation_date',
+  ai_response: 'ai_response',
+  context_used: 'context_used',
+  created_at: 'created_at'
+} as const
+
+export type AiRecommendationLogScalarFieldEnum = (typeof AiRecommendationLogScalarFieldEnum)[keyof typeof AiRecommendationLogScalarFieldEnum]
 
 
 export const DiseaseScalarFieldEnum = {
@@ -227,6 +230,13 @@ export const NullableJsonNullValueInput = {
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {

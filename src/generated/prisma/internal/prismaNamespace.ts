@@ -385,10 +385,10 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   User: 'User',
-  AuthCredential: 'AuthCredential',
   Land: 'Land',
   PlantingCycle: 'PlantingCycle',
   DailyActivity: 'DailyActivity',
+  AiRecommendationLog: 'AiRecommendationLog',
   Disease: 'Disease',
   HealthReport: 'HealthReport',
   HarvestReport: 'HarvestReport',
@@ -409,7 +409,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "authCredential" | "land" | "plantingCycle" | "dailyActivity" | "disease" | "healthReport" | "harvestReport" | "marketPrice" | "notification"
+    modelProps: "user" | "land" | "plantingCycle" | "dailyActivity" | "aiRecommendationLog" | "disease" | "healthReport" | "harvestReport" | "marketPrice" | "notification"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -484,80 +484,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserCountAggregateOutputType> | number
-        }
-      }
-    }
-    AuthCredential: {
-      payload: Prisma.$AuthCredentialPayload<ExtArgs>
-      fields: Prisma.AuthCredentialFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.AuthCredentialFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.AuthCredentialFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload>
-        }
-        findFirst: {
-          args: Prisma.AuthCredentialFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.AuthCredentialFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload>
-        }
-        findMany: {
-          args: Prisma.AuthCredentialFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload>[]
-        }
-        create: {
-          args: Prisma.AuthCredentialCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload>
-        }
-        createMany: {
-          args: Prisma.AuthCredentialCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.AuthCredentialCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload>[]
-        }
-        delete: {
-          args: Prisma.AuthCredentialDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload>
-        }
-        update: {
-          args: Prisma.AuthCredentialUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload>
-        }
-        deleteMany: {
-          args: Prisma.AuthCredentialDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.AuthCredentialUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.AuthCredentialUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload>[]
-        }
-        upsert: {
-          args: Prisma.AuthCredentialUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthCredentialPayload>
-        }
-        aggregate: {
-          args: Prisma.AuthCredentialAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateAuthCredential>
-        }
-        groupBy: {
-          args: Prisma.AuthCredentialGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AuthCredentialGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.AuthCredentialCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AuthCredentialCountAggregateOutputType> | number
         }
       }
     }
@@ -780,6 +706,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.DailyActivityCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.DailyActivityCountAggregateOutputType> | number
+        }
+      }
+    }
+    AiRecommendationLog: {
+      payload: Prisma.$AiRecommendationLogPayload<ExtArgs>
+      fields: Prisma.AiRecommendationLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AiRecommendationLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AiRecommendationLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload>
+        }
+        findFirst: {
+          args: Prisma.AiRecommendationLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AiRecommendationLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload>
+        }
+        findMany: {
+          args: Prisma.AiRecommendationLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload>[]
+        }
+        create: {
+          args: Prisma.AiRecommendationLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload>
+        }
+        createMany: {
+          args: Prisma.AiRecommendationLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AiRecommendationLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload>[]
+        }
+        delete: {
+          args: Prisma.AiRecommendationLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload>
+        }
+        update: {
+          args: Prisma.AiRecommendationLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.AiRecommendationLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AiRecommendationLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AiRecommendationLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.AiRecommendationLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRecommendationLogPayload>
+        }
+        aggregate: {
+          args: Prisma.AiRecommendationLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAiRecommendationLog>
+        }
+        groupBy: {
+          args: Prisma.AiRecommendationLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiRecommendationLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AiRecommendationLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiRecommendationLogCountAggregateOutputType> | number
         }
       }
     }
@@ -1201,23 +1201,12 @@ export const UserScalarFieldEnum = {
   bio: 'bio',
   address_home: 'address_home',
   fcm_token: 'fcm_token',
+  email: 'email',
+  role: 'role',
   created_at: 'created_at'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
-
-
-export const AuthCredentialScalarFieldEnum = {
-  id: 'id',
-  user_id: 'user_id',
-  email: 'email',
-  password_hash: 'password_hash',
-  role: 'role',
-  last_login: 'last_login',
-  is_verified: 'is_verified'
-} as const
-
-export type AuthCredentialScalarFieldEnum = (typeof AuthCredentialScalarFieldEnum)[keyof typeof AuthCredentialScalarFieldEnum]
 
 
 export const LandScalarFieldEnum = {
@@ -1252,12 +1241,26 @@ export const DailyActivityScalarFieldEnum = {
   cycle_id: 'cycle_id',
   activity_type: 'activity_type',
   amount: 'amount',
+  weather_data: 'weather_data',
+  unit: 'unit',
   notes: 'notes',
-  weather_condition: 'weather_condition',
+  activity_date: 'activity_date',
   created_at: 'created_at'
 } as const
 
 export type DailyActivityScalarFieldEnum = (typeof DailyActivityScalarFieldEnum)[keyof typeof DailyActivityScalarFieldEnum]
+
+
+export const AiRecommendationLogScalarFieldEnum = {
+  id: 'id',
+  cycle_id: 'cycle_id',
+  recommendation_date: 'recommendation_date',
+  ai_response: 'ai_response',
+  context_used: 'context_used',
+  created_at: 'created_at'
+} as const
+
+export type AiRecommendationLogScalarFieldEnum = (typeof AiRecommendationLogScalarFieldEnum)[keyof typeof AiRecommendationLogScalarFieldEnum]
 
 
 export const DiseaseScalarFieldEnum = {
@@ -1342,6 +1345,13 @@ export const NullableJsonNullValueInput = {
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
 export const QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -1388,20 +1398,6 @@ export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaMod
 
 
 /**
- * Reference to a field of type 'DateTime'
- */
-export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
-    
-
-
-/**
- * Reference to a field of type 'DateTime[]'
- */
-export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
-    
-
-
-/**
  * Reference to a field of type 'ROLE'
  */
 export type EnumROLEFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ROLE'>
@@ -1416,9 +1412,16 @@ export type ListEnumROLEFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
 
 
 /**
- * Reference to a field of type 'Boolean'
+ * Reference to a field of type 'DateTime'
  */
-export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
+    
+
+
+/**
+ * Reference to a field of type 'DateTime[]'
+ */
+export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
     
 
 
@@ -1447,6 +1450,13 @@ export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'J
  * Reference to a field of type 'QueryMode'
  */
 export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
+ * Reference to a field of type 'Boolean'
+ */
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -1574,10 +1584,10 @@ export type PrismaClientOptions = ({
 }
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
-  authCredential?: Prisma.AuthCredentialOmit
   land?: Prisma.LandOmit
   plantingCycle?: Prisma.PlantingCycleOmit
   dailyActivity?: Prisma.DailyActivityOmit
+  aiRecommendationLog?: Prisma.AiRecommendationLogOmit
   disease?: Prisma.DiseaseOmit
   healthReport?: Prisma.HealthReportOmit
   harvestReport?: Prisma.HarvestReportOmit

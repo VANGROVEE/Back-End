@@ -7,10 +7,7 @@ import { userServices } from "./user.service";
 
 export const userController = {
   findAll: catchAsync(async (req: Request, res: Response) => {
-    const result = await userServices.findAll({
-      select: userServices.userAdminSelect,
-      orderBy: { created_at: "desc" },
-    });
+    const result = await userServices.findAll();
 
     return sendResponse(res, 200, "Berhasil mengambil semua user", result);
   }),
