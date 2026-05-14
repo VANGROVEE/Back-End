@@ -25,6 +25,39 @@ class LandSerivces extends BaseService<Land, typeof prisma.land> {
     });
   }
 
+  async findDetail(landId: string) {
+    const data = await prisma.land.findUnique({
+      where: {
+        id: landId,
+      },
+      include: {
+        owner: true,
+
+        planting_cycles: {
+          orderBy: {
+            start_date: "desc",
+          },
+          include: {
+            daily_activities: {
+              orderBy: {
+                activity_date: "desc",
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!data) {
+      throw new ApiError(404, `Lahan dengan ID ${landId} tidak ditemukan.`);
+    }
+
+    const mappedData = {
+      ...data,
+    };
+
+    return mappedData;
+  }
   override async update(id: string, data: UpdateLandDto) {
     const currentLand = await prisma.land.findUnique({
       where: { id },
@@ -45,6 +78,37 @@ class LandSerivces extends BaseService<Land, typeof prisma.land> {
       where: { id },
       data,
     });
+  }
+
+  async getStats() {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const landAggregations = await prisma.land.aggregate({
+      _count: { id: true },
+      _sum: { total_area: true },
+    });
+
+    const newLandsThisMonth = await prisma.land.count({
+      where: {
+        created_at: {
+          gte: startOfMonth,
+        },
+      },
+    });
+
+    const activeCycles = await prisma.plantingCycle.count({
+      where: {
+        status: "HARVESTED",
+      },
+    });
+
+    return {
+      total_lands: landAggregations._count.id || 0,
+      new_lands_this_month: newLandsThisMonth || 0,
+      total_area: landAggregations._sum.total_area || 0,
+      active_cycles: activeCycles || 0,
+    };
   }
 
   private async validateOverlap(
@@ -93,6 +157,11 @@ class LandSerivces extends BaseService<Land, typeof prisma.land> {
         );
       }
     }
+  }
+
+  async getLands() {
+    const data = await prisma.land.findMany({ include: { owner: true } });
+    return data;
   }
 }
 

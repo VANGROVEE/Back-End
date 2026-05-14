@@ -53,6 +53,7 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   User: 'User',
   Land: 'Land',
+  Commodity: 'Commodity',
   PlantingCycle: 'PlantingCycle',
   DailyActivity: 'DailyActivity',
   AiRecommendationLog: 'AiRecommendationLog',
@@ -109,10 +110,21 @@ export const LandScalarFieldEnum = {
 export type LandScalarFieldEnum = (typeof LandScalarFieldEnum)[keyof typeof LandScalarFieldEnum]
 
 
+export const CommodityScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  slug_ai: 'slug_ai',
+  is_ai_supported: 'is_ai_supported',
+  category: 'category'
+} as const
+
+export type CommodityScalarFieldEnum = (typeof CommodityScalarFieldEnum)[keyof typeof CommodityScalarFieldEnum]
+
+
 export const PlantingCycleScalarFieldEnum = {
   id: 'id',
   land_id: 'land_id',
-  commodity_name: 'commodity_name',
+  commodity_id: 'commodity_id',
   variety: 'variety',
   planting_method: 'planting_method',
   start_date: 'start_date',
@@ -153,10 +165,12 @@ export type AiRecommendationLogScalarFieldEnum = (typeof AiRecommendationLogScal
 export const DiseaseScalarFieldEnum = {
   id: 'id',
   name: 'name',
+  commodity_id: 'commodity_id',
   scientific_name: 'scientific_name',
   description: 'description',
   local_treatment: 'local_treatment',
-  preventive_action: 'preventive_action'
+  preventive_action: 'preventive_action',
+  label_ai: 'label_ai'
 } as const
 
 export type DiseaseScalarFieldEnum = (typeof DiseaseScalarFieldEnum)[keyof typeof DiseaseScalarFieldEnum]
@@ -167,6 +181,7 @@ export const HealthReportScalarFieldEnum = {
   cycle_id: 'cycle_id',
   disease_id: 'disease_id',
   image_url: 'image_url',
+  image_key: 'image_key',
   confidence_score: 'confidence_score',
   gemini_insight: 'gemini_insight',
   is_outbreak_trigger: 'is_outbreak_trigger',

@@ -15,3 +15,38 @@ export const ROLE = {
 } as const
 
 export type ROLE = (typeof ROLE)[keyof typeof ROLE]
+
+
+export const STATUS = {
+  HARVESTED: 'HARVESTED',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED'
+} as const
+
+export type STATUS = (typeof STATUS)[keyof typeof STATUS]
+
+
+export const ActivityType = {
+  PLANTING: 'PLANTING',
+  WATERING: 'WATERING',
+  FERTILIZING: 'FERTILIZING',
+  PEST_CONTROL: 'PEST_CONTROL',
+  MAINTENANCE: 'MAINTENANCE',
+  OBSERVATION: 'OBSERVATION',
+  HARVESTING: 'HARVESTING',
+  OTHER: 'OTHER'
+} as const
+
+export type ActivityType = (typeof ActivityType)[keyof typeof ActivityType]
+
+
+export const CommodityCategory = {
+  MANGROVE: 'MANGROVE',
+  PANGAN: 'PANGAN',
+  HORTIKULTURA_SAYUR: 'HORTIKULTURA_SAYUR',
+  HORTIKULTURA_BUAH: 'HORTIKULTURA_BUAH',
+  PERKEBUNAN: 'PERKEBUNAN',
+  HERBAL: 'HERBAL'
+} as const
+
+export type CommodityCategory = (typeof CommodityCategory)[keyof typeof CommodityCategory]

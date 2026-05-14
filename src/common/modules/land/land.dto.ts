@@ -23,24 +23,37 @@ export const createLandBodySchema = z
         address: z.string().optional(),
       })
       .strict()
-
       .openapi({
         example: {
-          latitude: -6.1751,
-          longitude: 106.8272,
+          latitude: -1.5925,
+          longitude: 103.614,
           address: "Jambi, Indonesia",
         },
       }),
   })
-
   .strict()
   .openapi("CreateLandBody");
+
+export const adminCreateLandBodySchema = createLandBodySchema
+  .extend({
+    owner_id: z
+      .string()
+      .uuid("Owner ID harus berupa UUID")
+      .optional()
+      .openapi({ example: "123e4567-e89b-12d3-a456-426614174000" }),
+  })
+  .strict()
+  .openapi("AdminCreateLandBody");
 
 export const createLandSchema = z.object({
   body: createLandBodySchema,
 });
 
-export const updateLandBodySchema = createLandBodySchema
+export const adminCreateLandSchema = z.object({
+  body: adminCreateLandBodySchema,
+});
+
+export const updateLandBodySchema = adminCreateLandBodySchema
   .partial()
   .strict()
   .openapi("UpdateLandBody");
@@ -50,7 +63,9 @@ export const updateLandSchema = z.object({
 });
 
 export type CreateLandDto = z.infer<typeof createLandBodySchema>;
+export type AdminCreateLandDto = z.infer<typeof adminCreateLandBodySchema>;
 export type UpdateLandDto = z.infer<typeof updateLandBodySchema>;
 
 registry.register("CreateLandBody", createLandBodySchema);
+registry.register("AdminCreateLandBody", adminCreateLandBodySchema);
 registry.register("UpdateLandBody", updateLandBodySchema);

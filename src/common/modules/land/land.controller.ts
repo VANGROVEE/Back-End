@@ -23,7 +23,7 @@ export const landController = {
 
   getById: catchAsync(async (req: Request, res: Response) => {
     const id = req.params.id as string;
-    const data = await landService.findById(id);
+    const data = await landService.findDetail(id);
     return sendResponse(res, 200, "Detail Lahan Berhasil Diambil", data);
   }),
 
@@ -39,5 +39,29 @@ export const landController = {
     const id = req.params.id as string;
     await landService.delete(id);
     return sendResponse(res, 200, "Lahan Berhasil Dihapus", null);
+  }),
+
+  adminCreate: catchAsync(async (req: Request, res: Response) => {
+    const ownerId = req.body.owner_id || req.user.sub;
+
+    const payload = { ...req.body, owner_id: ownerId };
+
+    const data = await landService.createLand(ownerId, payload);
+    return sendResponse(
+      res,
+      201,
+      "Lahan Berhasil Ditambahkan oleh Admin!",
+      data,
+    );
+  }),
+
+  getStats: catchAsync(async (req: Request, res: Response) => {
+    const stats = await landService.getStats();
+    return sendResponse(res, 200, "Statistik Lahan Berhasil Diambil", stats);
+  }),
+
+  getLands: catchAsync(async (req: Request, res: Response) => {
+    const stats = await landService.getLands();
+    return sendResponse(res, 200, "Semua Lahan Berhasil Diambil", stats);
   }),
 };

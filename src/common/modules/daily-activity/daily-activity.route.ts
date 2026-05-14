@@ -39,4 +39,6 @@ export default (router: Router, prefix: string) => {
     authenticate,
     dailyActivityController.delete,
   );
+
+ 
 };

@@ -29,6 +29,12 @@ const envSchema = z.object({
     .string()
     .url({ message: "OPENWEATHER_BASE_URL harus berupa URL yang valid" })
     .default("https://api.openweathermap.org/data/2.5/forecast"),
+  UPLOADTHING_SECRET: z
+    .string()
+    .min(1, { message: "UPLOADTHING_SECRET wajib diisi" }),
+  UPLOADTHING_APP_ID: z
+    .string()
+    .min(1, { message: "UPLOADTHING_APP_ID wajib diisi" }),
 });
 
 const _env = envSchema.safeParse(process.env);

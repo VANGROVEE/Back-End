@@ -22,7 +22,7 @@ class DailyActivityService extends BaseService<
       throw new ApiError(404, "Siklus tanam tidak ditemukan.");
     }
 
-    if (cycle.status !== "ACTIVE") {
+    if (cycle.status !== "HARVESTED") {
       throw new ApiError(
         400,
         "Tidak dapat mencatat aktivitas pada siklus yang sudah tidak aktif.",

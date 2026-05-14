@@ -3,8 +3,13 @@ import { validate } from "@/common/middlewares/validate";
 import { commonSchema } from "@/common/utils/schema";
 import type { Router } from "express";
 import { plantingCycleController } from "./planting-cycle.controller";
+import {
+  createPlantingCycleSchema,
+  getPlantingCycleSchema,
+  updatePlantingCycleSchema,
+} from "./planting-cycle.dto";
+
 import "./planting-cycle.docs";
-import { createPlantingCycleSchema } from "./planting-cycle.dto";
 
 export default (router: Router, prefix: string) => {
   router.post(
@@ -14,7 +19,19 @@ export default (router: Router, prefix: string) => {
     plantingCycleController.create,
   );
 
-  router.get(prefix, authenticate, plantingCycleController.findAll);
+  router.patch(
+    prefix + "/:id",
+    authenticate,
+    validate(updatePlantingCycleSchema),
+    plantingCycleController.update,
+  );
+
+  router.get(
+    prefix + "/heatmap-calendar",
+    authenticate,
+    validate(getPlantingCycleSchema),
+    plantingCycleController.getHeatmapCalendar,
+  );
 
   router.get(
     `${prefix}/:id`,
@@ -23,6 +40,7 @@ export default (router: Router, prefix: string) => {
     plantingCycleController.findOne,
   );
 
+  router.get(prefix, authenticate, plantingCycleController.findAll);
   router.delete(
     `${prefix}/:id`,
     authenticate,

@@ -1,4 +1,5 @@
 import { registry } from "@/common/docs/openapi-registry";
+import { ActivityType } from "@/generated/prisma/client";
 import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
 
@@ -21,27 +22,35 @@ export const createDailyActivityBodySchema = z
       .string()
       .uuid("ID Siklus harus berupa UUID yang valid")
       .openapi({ example: "550e8400-e29b-41d4-a716-446655440000" }),
+
     activity_date: z.coerce.date().openapi({
       type: "string",
-      format: "date",
-      example: "2026-05-01",
-      description: "Tanggal aktivitas (Format: YYYY-MM-DD)",
+      format: "date-time",
+      example: "2026-05-02T00:00:00Z",
     }),
+
     activity_type: z
-      .string()
-      .min(1, "Tipe aktivitas wajib diisi")
-      .openapi({ example: "Penyiraman" }),
+      .nativeEnum(ActivityType, {
+        error: () => ({ message: "Tipe aktivitas tidak valid" }),
+      })
+      .openapi({ example: ActivityType.FERTILIZING }),
+
     amount: z
       .number()
       .positive("Jumlah/Amount harus bernilai positif")
+      .nullable()
       .optional()
       .openapi({ example: 15.5 }),
-    unit: z.string().optional().openapi({ example: "liter" }),
+
+    unit: z.string().nullable().optional().openapi({ example: "liter" }),
+
     notes: z
       .string()
+      .nullable()
       .optional()
       .openapi({ example: "Penyiraman pagi hari dengan pompa utama" }),
-    weather_data: weatherDataSchema.optional(),
+
+    weather_data: weatherDataSchema.nullable().optional(),
   })
   .strict()
   .openapi("CreateDailyActivityBody");
@@ -50,32 +59,9 @@ export const createDailyActivitySchema = z.object({
   body: createDailyActivityBodySchema,
 });
 
-export type CreateDailyActivityDto = z.infer<
-  typeof createDailyActivityBodySchema
->;
-
-registry.register("CreateDailyActivityDto", createDailyActivityBodySchema);
-
-export const updateDailyActivityBodySchema = z
-  .object({
-    activity_date: z.coerce.date().optional().openapi({
-      type: "string",
-      format: "date",
-      example: "2026-05-02",
-    }),
-    activity_type: z
-      .string()
-      .min(1)
-      .optional()
-      .openapi({ example: "Pemupukan Susulan" }),
-    amount: z.number().positive().optional().openapi({ example: 5 }),
-    unit: z.string().optional().openapi({ example: "kg" }),
-    notes: z
-      .string()
-      .optional()
-      .openapi({ example: "Menggunakan pupuk organik cair" }),
-    weather_data: weatherDataSchema.optional(),
-  })
+export const updateDailyActivityBodySchema = createDailyActivityBodySchema
+  .omit({ cycle_id: true })
+  .partial()
   .strict()
   .openapi("UpdateDailyActivityBody");
 
@@ -87,12 +73,21 @@ export const updateDailyActivityParamsSchema = z.object({
 });
 
 export const updateDailyActivitySchema = z.object({
-  body: updateDailyActivityBodySchema,
+  body: updateDailyActivityBodySchema.refine(
+    (data) => Object.keys(data).length > 0,
+    {
+      message: "Setidaknya harus ada satu field yang diupdate",
+    },
+  ),
   params: updateDailyActivityParamsSchema,
 });
 
+export type CreateDailyActivityDto = z.infer<
+  typeof createDailyActivityBodySchema
+>;
 export type UpdateDailyActivityDto = z.infer<
   typeof updateDailyActivityBodySchema
 >;
 
-registry.register("UpdateDailyActivityDto", updateDailyActivityBodySchema);
+registry.register("CreateDailyActivityBody", createDailyActivityBodySchema);
+registry.register("UpdateDailyActivityBody", updateDailyActivityBodySchema);

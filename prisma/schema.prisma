@@ -12,9 +12,35 @@ enum ROLE {
   FARMER
 }
 
+enum STATUS {
+  HARVESTED
+  COMPLETED
+  FAILED
+}
+
+enum ActivityType {
+  PLANTING      
+  WATERING      
+  FERTILIZING   
+  PEST_CONTROL  
+  MAINTENANCE   
+  OBSERVATION   
+  HARVESTING    
+  OTHER         
+}
+
+enum CommodityCategory {
+  MANGROVE
+  PANGAN
+  HORTIKULTURA_SAYUR
+  HORTIKULTURA_BUAH
+  PERKEBUNAN
+  HERBAL
+}
+
 model User {
-  // ID harus bertipe UUID dan tidak pakai @default(uuid()) 
-  // karena ID ini akan datang dari auth.users Supabase
+  
+  
   id           String   @id @db.Uuid
   name         String   @db.VarChar
   nickname     String?  @db.VarChar
@@ -24,31 +50,19 @@ model User {
   address_home String?  @db.Text
   fcm_token    String?  @db.Text
   email        String   @unique @db.VarChar
-  // Tambahkan kolom role di sini jika ingin custom role
+  
   role         ROLE     @default(FARMER)
   
   created_at   DateTime @default(now()) @db.Timestamp
 
-  // Relasi lainnya tetap sama
+  
   lands         Land[]
   notifications Notification[]
 
   @@map("users")
 }
 
-// model AuthCredential {
-//   id            String    @id @default(uuid()) @db.Uuid
-//   user_id       String    @unique @db.Uuid
-//   email         String    @unique @db.VarChar
-//   password_hash String?   @db.Text
-//   role          ROLE      @default(FARMER)
-//   last_login    DateTime? @db.Timestamp
-//   is_verified   Boolean   @default(false)
 
-//   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-//   @@map("auth_credentials")
-// }
 
 model Land {
   id                   String   @id @default(uuid()) @db.Uuid
@@ -64,23 +78,34 @@ model Land {
 
   @@map("lands")
 }
+model Commodity {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String   @unique 
+  slug_ai         String   @unique 
+  is_ai_supported Boolean  @default(false)
+  category        CommodityCategory @default(MANGROVE)
+  diseases        Disease[]
+  planting_cycles PlantingCycle[]
+
+  @@map("commodities")
+}
 
 model PlantingCycle {
   id                String    @id @default(uuid()) @db.Uuid
   land_id           String    @db.Uuid
-  commodity_name    String    @db.VarChar
+  commodity_id    String    @db.Uuid
   variety           String?   @db.VarChar
   planting_method   String?   @db.VarChar
   start_date        DateTime  @db.Date
   estimated_harvest DateTime? @db.Date
-  status            String    @db.VarChar
+  status            STATUS
 
   land                 Land                  @relation(fields: [land_id], references: [id])
   daily_activities     DailyActivity[]
   health_reports       HealthReport[]
   harvest_reports      HarvestReport[]
   aiRecommendationLogs AiRecommendationLog[]
-
+  commodity       Commodity @relation(fields: [commodity_id], references: [id])
   @@unique([land_id, start_date])
   @@map("planting_cycles")
 }
@@ -88,7 +113,7 @@ model PlantingCycle {
 model DailyActivity {
   id            String  @id @default(uuid()) @db.Uuid
   cycle_id      String  @db.Uuid
-  activity_type String  @db.VarChar
+  activity_type ActivityType  @default(OBSERVATION)
   amount        Float?  @db.Real
   weather_data  Json?
   unit          String? @db.VarChar
@@ -125,44 +150,46 @@ model AiRecommendationLog {
 model Disease {
   id                String  @id @default(uuid()) @db.Uuid
   name              String  @db.VarChar
+  commodity_id      String    @db.Uuid
   scientific_name   String? @db.VarChar
   description       String? @db.Text
   local_treatment   String? @db.Text
   preventive_action String? @db.Text
-
+  label_ai     String    @unique 
+  
+  commodity    Commodity @relation(fields: [commodity_id], references: [id])
   health_reports HealthReport[]
 
   @@map("diseases")
 }
 
-model HealthReport {
-  id                  String   @id @default(uuid()) @db.Uuid
-  cycle_id            String   @db.Uuid
-  disease_id          String?  @db.Uuid
-  image_url           String?  @db.VarChar
-  confidence_score    Float?   @db.Real
-  gemini_insight      Json?
-  is_outbreak_trigger Boolean  @default(false)
-  created_at          DateTime @default(now()) @db.Timestamp
+  model HealthReport {
+    id                  String   @id @default(uuid()) @db.Uuid
+    cycle_id            String   @db.Uuid
+    disease_id          String?  @db.Uuid
+    image_url           String?  @db.VarChar
+    image_key           String?  @db.VarChar
+    confidence_score    Float?   @db.Real
+    gemini_insight      Json?
+    is_outbreak_trigger Boolean  @default(false)
+    created_at          DateTime @default(now()) @db.Timestamp
 
-  cycle   PlantingCycle @relation(fields: [cycle_id], references: [id])
-  disease Disease?      @relation(fields: [disease_id], references: [id])
+    cycle   PlantingCycle @relation(fields: [cycle_id], references: [id])
+    disease Disease?      @relation(fields: [disease_id], references: [id])
 
-  @@map("health_reports")
-}
+    @@map("health_reports")
+  }
 
 model HarvestReport {
   id                 String   @id @default(uuid()) @db.Uuid
   cycle_id           String   @unique @db.Uuid
   total_yield_kg     Float    @db.Real
-  ai_quality_metrics Json?
+  ai_quality_metrics Json?    
   quality_grade      String?  @db.VarChar
   image_proof_url    String?  @db.VarChar
   price_sold_per_kg  Int?     @db.Integer
   created_at         DateTime @default(now()) @db.Timestamp
-
   cycle PlantingCycle @relation(fields: [cycle_id], references: [id])
-
   @@map("harvest_reports")
 }
 

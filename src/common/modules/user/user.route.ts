@@ -4,10 +4,11 @@ import { commonSchema } from "@/common/utils/schema";
 import { Router } from "express";
 import { userController } from "./user.controller";
 import "./user.docs";
-import { updateUserSchema } from "./user.dto";
+import { createUserSchema, updateUserSchema } from "./user.dto";
 export default (router: Router, prefix: string) => {
   router.get(prefix, authenticate, userController.findAll);
 
+  router.get(prefix + "/stats", authenticate, userController.getStats);
   router.get(`${prefix}/:id`, authenticate, userController.findOne);
 
   router.patch(
@@ -15,6 +16,7 @@ export default (router: Router, prefix: string) => {
     validate(commonSchema.withId(updateUserSchema)),
     userController.update,
   );
+  router.post(`${prefix}`, validate(createUserSchema), userController.create);
 
   router.delete(`${prefix}/:id`, userController.delete);
 };

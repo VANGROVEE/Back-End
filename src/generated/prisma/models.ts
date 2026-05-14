@@ -10,6 +10,7 @@
  */
 export type * from './models/User.ts'
 export type * from './models/Land.ts'
+export type * from './models/Commodity.ts'
 export type * from './models/PlantingCycle.ts'
 export type * from './models/DailyActivity.ts'
 export type * from './models/AiRecommendationLog.ts'

@@ -4,8 +4,27 @@ import { commonSchema } from "@/common/utils/schema";
 import type { Router } from "express";
 import { landController } from "./land.controller";
 import "./land.docs";
-import { createLandSchema, updateLandSchema } from "./land.dto";
+import {
+  adminCreateLandSchema,
+  createLandSchema,
+  updateLandSchema,
+} from "./land.dto";
 export default (router: Router, prefix: string) => {
+  router.post(
+    prefix + "/admin",
+    authenticate,
+    validate(adminCreateLandSchema),
+
+    // requireAdmin,
+    landController.adminCreate,
+  );
+  router.get(
+    prefix + "/admin",
+    authenticate,
+    // requireAdmin,
+    landController.getLands,
+  );
+
   router.post(
     prefix,
     authenticate,
@@ -14,6 +33,8 @@ export default (router: Router, prefix: string) => {
   );
 
   router.get(prefix, authenticate, landController.getAll);
+
+  router.get(prefix + "/stats", authenticate, landController.getStats);
 
   router.get(
     `${prefix}/:id`,
