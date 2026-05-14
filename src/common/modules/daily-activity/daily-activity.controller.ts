@@ -18,7 +18,7 @@ export const dailyActivityController = {
       include: {
         cycle: {
           select: {
-            commodity_name: true,
+            commodity: { select: { name: true } },
             status: true,
           },
         },

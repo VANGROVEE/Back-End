@@ -6,6 +6,10 @@ declare global {
 
     interface Request {
       user: User;
+
+      file?: Multer.File;
+
+      files?: Multer.File[] | { [fieldname: string]: Multer.File[] };
     }
   }
 }

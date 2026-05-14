@@ -2,16 +2,45 @@ import { ApiError } from "@/common/utils/api-error";
 import { catchAsync } from "@/common/utils/express-async-errors";
 import { sendResponse } from "@/common/utils/response";
 import type { Request, Response } from "express";
-import { createPlantingCycleSchema } from "./planting-cycle.dto";
+
+import {
+  createPlantingCycleSchema,
+  updatePlantingCycleSchema,
+} from "./planting-cycle.dto";
 import { plantingCycleService } from "./planting-cycles.service";
 
 export const plantingCycleController = {
   create: catchAsync(async (req: Request, res: Response) => {
     const { body } = createPlantingCycleSchema.parse({ body: req.body });
 
-    const result = await plantingCycleService.create(body);
+    const result = await plantingCycleService.createCycle(body);
 
     return sendResponse(res, 201, "Siklus tanam berhasil diregistrasi", result);
+  }),
+
+  update: catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const { body } = updatePlantingCycleSchema.parse({ body: req.body });
+
+    const result = await plantingCycleService.updateCycle(id as string, body);
+
+    return sendResponse(res, 200, "Siklus tanam berhasil diperbarui", result);
+  }),
+
+  getHeatmapCalendar: catchAsync(async (req: Request, res: Response) => {
+    const { cycle_id } = req.query;
+
+    const result = await plantingCycleService.getHeatmapCalendar(
+      cycle_id as string,
+    );
+
+    return sendResponse(
+      res,
+      200,
+      "Data heatmap kalender berhasil diambil",
+      result,
+    );
   }),
 
   findAll: catchAsync(async (req: Request, res: Response) => {

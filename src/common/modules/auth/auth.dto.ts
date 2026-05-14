@@ -3,8 +3,6 @@ import { z } from "zod";
 
 extendZodWithOpenApi(z);
 
-// 1. Schema Dasar untuk Login
-// auth.dto.ts
 export const loginSchema = z.object({
   body: z.object({
     email: z
@@ -37,8 +35,8 @@ export const registerSchema = z
 export type LoginDto = z.infer<typeof loginSchema>["body"];
 export type GoogleLoginDto = z.infer<typeof googleLoginSchema>["body"];
 
-// Untuk RegisterDto, kita omit confirmPassword karena service tidak membutuhkannya
-export type RegisterDto = Omit<
+export type RegisterAuhtDto = Omit<
   z.infer<typeof registerSchema>["body"],
   "confirmPassword"
 >;
+export type UpdateAuthDto = Partial<Omit<RegisterAuhtDto, "confirmPassword">>;

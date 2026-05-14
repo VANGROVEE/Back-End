@@ -386,6 +386,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 export const ModelName = {
   User: 'User',
   Land: 'Land',
+  Commodity: 'Commodity',
   PlantingCycle: 'PlantingCycle',
   DailyActivity: 'DailyActivity',
   AiRecommendationLog: 'AiRecommendationLog',
@@ -409,7 +410,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "land" | "plantingCycle" | "dailyActivity" | "aiRecommendationLog" | "disease" | "healthReport" | "harvestReport" | "marketPrice" | "notification"
+    modelProps: "user" | "land" | "commodity" | "plantingCycle" | "dailyActivity" | "aiRecommendationLog" | "disease" | "healthReport" | "harvestReport" | "marketPrice" | "notification"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -558,6 +559,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.LandCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.LandCountAggregateOutputType> | number
+        }
+      }
+    }
+    Commodity: {
+      payload: Prisma.$CommodityPayload<ExtArgs>
+      fields: Prisma.CommodityFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CommodityFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommodityPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CommodityFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommodityPayload>
+        }
+        findFirst: {
+          args: Prisma.CommodityFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommodityPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CommodityFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommodityPayload>
+        }
+        findMany: {
+          args: Prisma.CommodityFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommodityPayload>[]
+        }
+        create: {
+          args: Prisma.CommodityCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommodityPayload>
+        }
+        createMany: {
+          args: Prisma.CommodityCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CommodityCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommodityPayload>[]
+        }
+        delete: {
+          args: Prisma.CommodityDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommodityPayload>
+        }
+        update: {
+          args: Prisma.CommodityUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommodityPayload>
+        }
+        deleteMany: {
+          args: Prisma.CommodityDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CommodityUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CommodityUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommodityPayload>[]
+        }
+        upsert: {
+          args: Prisma.CommodityUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommodityPayload>
+        }
+        aggregate: {
+          args: Prisma.CommodityAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCommodity>
+        }
+        groupBy: {
+          args: Prisma.CommodityGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CommodityGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CommodityCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CommodityCountAggregateOutputType> | number
         }
       }
     }
@@ -1222,10 +1297,21 @@ export const LandScalarFieldEnum = {
 export type LandScalarFieldEnum = (typeof LandScalarFieldEnum)[keyof typeof LandScalarFieldEnum]
 
 
+export const CommodityScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  slug_ai: 'slug_ai',
+  is_ai_supported: 'is_ai_supported',
+  category: 'category'
+} as const
+
+export type CommodityScalarFieldEnum = (typeof CommodityScalarFieldEnum)[keyof typeof CommodityScalarFieldEnum]
+
+
 export const PlantingCycleScalarFieldEnum = {
   id: 'id',
   land_id: 'land_id',
-  commodity_name: 'commodity_name',
+  commodity_id: 'commodity_id',
   variety: 'variety',
   planting_method: 'planting_method',
   start_date: 'start_date',
@@ -1266,10 +1352,12 @@ export type AiRecommendationLogScalarFieldEnum = (typeof AiRecommendationLogScal
 export const DiseaseScalarFieldEnum = {
   id: 'id',
   name: 'name',
+  commodity_id: 'commodity_id',
   scientific_name: 'scientific_name',
   description: 'description',
   local_treatment: 'local_treatment',
-  preventive_action: 'preventive_action'
+  preventive_action: 'preventive_action',
+  label_ai: 'label_ai'
 } as const
 
 export type DiseaseScalarFieldEnum = (typeof DiseaseScalarFieldEnum)[keyof typeof DiseaseScalarFieldEnum]
@@ -1280,6 +1368,7 @@ export const HealthReportScalarFieldEnum = {
   cycle_id: 'cycle_id',
   disease_id: 'disease_id',
   image_url: 'image_url',
+  image_key: 'image_key',
   confidence_score: 'confidence_score',
   gemini_insight: 'gemini_insight',
   is_outbreak_trigger: 'is_outbreak_trigger',
@@ -1461,6 +1550,48 @@ export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
 
 
 /**
+ * Reference to a field of type 'CommodityCategory'
+ */
+export type EnumCommodityCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CommodityCategory'>
+    
+
+
+/**
+ * Reference to a field of type 'CommodityCategory[]'
+ */
+export type ListEnumCommodityCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CommodityCategory[]'>
+    
+
+
+/**
+ * Reference to a field of type 'STATUS'
+ */
+export type EnumSTATUSFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'STATUS'>
+    
+
+
+/**
+ * Reference to a field of type 'STATUS[]'
+ */
+export type ListEnumSTATUSFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'STATUS[]'>
+    
+
+
+/**
+ * Reference to a field of type 'ActivityType'
+ */
+export type EnumActivityTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ActivityType'>
+    
+
+
+/**
+ * Reference to a field of type 'ActivityType[]'
+ */
+export type ListEnumActivityTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ActivityType[]'>
+    
+
+
+/**
  * Reference to a field of type 'Int'
  */
 export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -1585,6 +1716,7 @@ export type PrismaClientOptions = ({
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   land?: Prisma.LandOmit
+  commodity?: Prisma.CommodityOmit
   plantingCycle?: Prisma.PlantingCycleOmit
   dailyActivity?: Prisma.DailyActivityOmit
   aiRecommendationLog?: Prisma.AiRecommendationLogOmit

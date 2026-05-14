@@ -2,7 +2,7 @@ import { ApiError } from "@/common/utils/api-error";
 import { catchAsync } from "@/common/utils/express-async-errors";
 import { sendResponse } from "@/common/utils/response";
 import type { Request, Response } from "express";
-import type { UpdateUserDto } from "./user.dto";
+import type { CreateUserDto, UpdateUserDto } from "./user.dto";
 import { userServices } from "./user.service";
 
 export const userController = {
@@ -17,7 +17,9 @@ export const userController = {
 
     if (!id) throw new ApiError(400, "Parameter ID wajib dikirim");
 
-    const result = await userServices.findById(id as string);
+    const result = await userServices.findById(id as string, {
+      select: userServices.userAdminFindDetail,
+    });
 
     return sendResponse(res, 200, "User ditemukan", result);
   }),
@@ -29,9 +31,7 @@ export const userController = {
 
     const payload = req.body as UpdateUserDto;
 
-    const result = await userServices.update(id as string, payload, {
-      select: userServices.userUpdateSelect,
-    });
+    const result = await userServices.updateViaAdmin(id as string, payload);
 
     return sendResponse(res, 200, "User berhasil diperbarui", result);
   }),
@@ -44,5 +44,18 @@ export const userController = {
     await userServices.delete(id as string);
 
     return sendResponse(res, 200, "User berhasil dihapus", null);
+  }),
+  create: catchAsync(async (req: Request, res: Response) => {
+    const payload = req.body as CreateUserDto;
+
+    await userServices.createViaAdmin(payload);
+
+    return sendResponse(res, 200, "User berhasil ditambah", null);
+  }),
+
+  getStats: catchAsync(async (req: Request, res: Response) => {
+    const data = await userServices.getStats();
+
+    return sendResponse(res, 200, "Statistik Berhasil Di Dapatkan!", data);
   }),
 };

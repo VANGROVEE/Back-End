@@ -52,6 +52,11 @@ export type User = Prisma.UserModel
  */
 export type Land = Prisma.LandModel
 /**
+ * Model Commodity
+ * 
+ */
+export type Commodity = Prisma.CommodityModel
+/**
  * Model PlantingCycle
  * 
  */
