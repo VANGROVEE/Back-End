@@ -8,9 +8,10 @@ import { globalErrorHandler } from "../middlewares/global-error-handler";
 import { notFoundHandler } from "../middlewares/notFound";
 import { httpLogger } from "./pino";
 import { setupSwagger } from "./swagger";
+import { globalLimiter } from "../middlewares/rate-limiter";
 
 export const app: Express = express();
-
+app.use(globalLimiter);
 app.use(helmet());
 app.use(cors());
 app.use(httpLogger);
