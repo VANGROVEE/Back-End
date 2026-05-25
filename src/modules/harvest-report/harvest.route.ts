@@ -3,7 +3,6 @@ import { validate } from "@/common/middlewares/validate";
 import { Router } from "express";
 import { harvestReportController } from "./harvest.controller";
 import { createHarvestReportBodySchema } from "./harvest.dto";
-
 export default (router: Router, prefix: string) => {
   router.get(
     `${prefix}/dashboard`,

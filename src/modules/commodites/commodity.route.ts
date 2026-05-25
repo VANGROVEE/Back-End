@@ -10,6 +10,7 @@ import {
   importExcelSchema,
   updateCommoditySchema,
 } from "./comodity.dto";
+
 export default (router: Router, prefix: string) => {
   router.get(prefix, authenticate, commodityController.findAll);
 
