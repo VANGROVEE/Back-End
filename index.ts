@@ -1,53 +1,78 @@
-import { app } from "./src/common/config/app";
-import { env } from "@config/env";
-import { logger } from "@config/pino";
+import { app } from "@/common/config/app";
+import { env } from "@/common/config/env";
+import { logger } from "@/common/config/pino";
+import { prisma } from "@/common/config/prisma";
+import { connectRedis, disconnectRedis } from "@/common/config/redis";
 import chalk from "chalk";
 
-const PORT = env.PORT;
-const HOST = env.HOST;
+const { PORT, HOST, NODE_ENV } = env;
 
-try {
-  const server = app.listen(PORT, HOST, () => {
-    const displayHost =
-      HOST === "0.0.0.0" || HOST === "localhost" ? "localhost" : HOST;
-    const url = `http://${displayHost}:${PORT}/api/v1`;
+async function bootstrap() {
+  try {
+    await prisma.$connect();
+    logger.info("Database connection established");
 
-    console.clear();
+    await connectRedis();
 
-    logger.info(`Server started successfully on ${url}`);
+    const server = app.listen(PORT, HOST, () => {
+      const displayHost =
+        HOST === "0.0.0.0" || HOST === "localhost" ? "localhost" : HOST;
+      const url = `http://${displayHost}:${PORT}/api/v1`;
 
-    console.log(`
-${chalk.bold.green("  🚀 MANGROVE BACKEND DEPLOYED")}
-${chalk.gray("  ---------------------------------------------")}
-  ${chalk.blue("➜")}  ${chalk.bold("Local:")}   ${chalk.cyan(url)}
-  ${chalk.blue("➜")}  ${chalk.bold("Docs:")}    ${chalk.cyan(`${url}/docs`)}
-  ${chalk.blue("➜")}  ${chalk.bold("Health:")}  ${chalk.cyan(`${url}/health`)}
-${chalk.gray("  ---------------------------------------------")}
-    `);
-  });
-
-  server.on("error", (err: any) => {
-    if (err.code === "EADDRINUSE") {
-      logger.error(`Port ${PORT} is already in use by another application.`);
-    } else {
-      logger.error(`Server Error: ${err.message}`);
-    }
-    process.exit(1);
-  });
-
-  const shutdown = () => {
-    console.log(
-      chalk.yellow("\n🛑 Shutdown signal received. Closing server..."),
-    );
-    server.close(() => {
-      logger.info("Server closed. Bye!");
-      process.exit(0);
+      if (NODE_ENV === "development") {
+        console.clear();
+        console.log(`
+${chalk.bold.green("   🚀 VANGROVE BACKEND DEPLOYED")}
+${chalk.gray("   ---------------------------------------------")}
+   ${chalk.blue("➜")}   ${chalk.bold("Local:")}    ${chalk.cyan(url)}
+   ${chalk.blue("➜")}   ${chalk.bold("Docs:")}     ${chalk.cyan(`${url}/docs`)}
+   ${chalk.blue("➜")}   ${chalk.bold("Mode:")}     ${chalk.yellow(NODE_ENV)}
+${chalk.gray("   ---------------------------------------------")}
+        `);
+      } else {
+        logger.info(`Server started on ${url} [${NODE_ENV}]`);
+      }
     });
-  };
 
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
-} catch (error) {
-  console.error(chalk.red("💥 Fatal Error during startup:"), error);
-  process.exit(1);
+    server.on("error", (err: any) => {
+      if (err.code === "EADDRINUSE") {
+        logger.error(`Port ${PORT} is already in use.`);
+      } else {
+        logger.error(`Server Error: ${err.message}`);
+      }
+      process.exit(1);
+    });
+
+    const shutdown = async (signal: string) => {
+      console.log(chalk.yellow(`\n🛑 ${signal} received. Cleaning up...`));
+
+      const forceExit = setTimeout(() => {
+        logger.warn(
+          "Could not close connections in time, forcefully shutting down",
+        );
+        process.exit(1);
+      }, 10000);
+
+      server.close(async () => {
+        try {
+          await disconnectRedis();
+          await prisma.$disconnect();
+          logger.info("Cleanup successful. Server closed.");
+          clearTimeout(forceExit);
+          process.exit(0);
+        } catch (err) {
+          logger.error({ err }, "Error during cleanup");
+          process.exit(1);
+        }
+      });
+    };
+
+    process.on("SIGINT", () => shutdown("SIGINT"));
+    process.on("SIGTERM", () => shutdown("SIGTERM"));
+  } catch (error) {
+    logger.fatal({ err: error }, "💥 Fatal Error during startup");
+    process.exit(1);
+  }
 }
+
+bootstrap();

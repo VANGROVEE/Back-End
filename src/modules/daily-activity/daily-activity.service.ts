@@ -1,6 +1,7 @@
 import { BaseService } from "@/common/base/service";
 import { prisma } from "@/common/config/prisma";
 import { ApiError } from "@/common/utils/api-error";
+import { cacheHelper } from "@/common/utils/cache";
 import { calculateDistance, getRadiusFromArea } from "@/common/utils/geo";
 import { Prisma, STATUS, type DailyActivity } from "@/generated/prisma/client";
 import type {
@@ -15,7 +16,7 @@ class DailyActivityService extends BaseService<
   typeof prisma.dailyActivity
 > {
   constructor() {
-    super(prisma.dailyActivity);
+    super(prisma.dailyActivity, "daily-activities");
   }
 
   async createActivity(data: CreateDailyActivityDto) {
@@ -34,7 +35,7 @@ class DailyActivityService extends BaseService<
       ...cleanData
     } = data;
 
-    return await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const newActivity = await tx.dailyActivity.create({
         data: {
           cycle_id: cleanData.cycle_id,
@@ -43,7 +44,6 @@ class DailyActivityService extends BaseService<
           amount: cleanData.amount ?? null,
           unit: cleanData.unit ?? null,
           notes: cleanData.notes ?? null,
-
           weather_data:
             (cleanData.weather_data as Prisma.InputJsonValue) ??
             Prisma.JsonNull,
@@ -54,7 +54,6 @@ class DailyActivityService extends BaseService<
 
       if (cleanData.activity_type === "HARVESTING") {
         await this.handleHarvesting(tx, data);
-
         targetStatus = is_productive === false ? "COMPLETED" : "HARVESTED";
       } else if (cleanData.activity_type === "OBSERVATION" && ai_raw_result) {
         await this.handleSaveAiReport(
@@ -75,6 +74,37 @@ class DailyActivityService extends BaseService<
 
       return newActivity;
     });
+
+    await this.invalidateRelatedCaches(data.cycle_id);
+
+    return result;
+  }
+
+  private async invalidateRelatedCaches(cycleId: string) {
+    const cycle = await prisma.plantingCycle.findUnique({
+      where: { id: cycleId },
+      include: { land: true },
+    });
+
+    const promises: Promise<any>[] = [
+      this.invalidateCache(),
+      cacheHelper.deletePattern(`planting-cycles:all:*`),
+      cacheHelper.delete([
+        `planting-cycles:detail:${cycleId}`,
+        `planting-cycles:heatmap:all`,
+        `planting-cycles:heatmap:${cycleId}`,
+        `health:reports-cycle:${cycleId}`,
+      ]),
+    ];
+
+    if (cycle) {
+      promises.push(this.invalidateCache({ userId: cycle.land.owner_id }));
+      promises.push(
+        cacheHelper.delete(`harvest:dashboard:${cycle.land.owner_id}`),
+      );
+    }
+
+    await Promise.all(promises);
   }
 
   private async handleSaveAiReport(
@@ -85,9 +115,14 @@ class DailyActivityService extends BaseService<
     aiData: AiRawResultDto,
     activityDate: Date,
   ) {
-    const disease = await tx.disease.findUnique({
-      where: { label_ai: aiData.disease_name },
-    });
+    const disease = await cacheHelper.getOrSet(
+      `disease:label:${aiData.disease_name}`,
+      async () => {
+        return await prisma.disease.findUnique({
+          where: { label_ai: aiData.disease_name },
+        });
+      },
+    );
 
     const report = await tx.healthReport.create({
       data: {
@@ -100,14 +135,10 @@ class DailyActivityService extends BaseService<
         gemini_insight: aiData.insight as unknown as Prisma.InputJsonValue,
         created_at: activityDate,
       },
-
       include: {
-        cycle: {
-          include: { land: true },
-        },
+        cycle: { include: { land: true } },
       },
     });
-    console.log(aiData.is_dangerous);
 
     if (aiData.is_dangerous && disease) {
       setImmediate(() => this.handleOutbreakAlert(report.cycle.land, disease));
@@ -115,20 +146,34 @@ class DailyActivityService extends BaseService<
 
     return report;
   }
+
   private async handleOutbreakAlert(currentLand: any, disease: any) {
     const loc = currentLand.location as any;
     if (!loc?.latitude || !loc?.longitude) return;
 
-    const otherLands = await prisma.land.findMany({
-      where: { owner_id: { not: currentLand.owner_id } },
-      select: { owner_id: true, location: true, total_area: true },
-    });
+    const otherLands = await cacheHelper.getOrSet(
+      "lands:geo-data",
+      async () => {
+        return await prisma.land.findMany({
+          where: { is_active: true },
+          select: {
+            owner_id: true,
+            location: true,
+            total_area: true,
+            id: true,
+          },
+        });
+      },
+      1800,
+    );
 
     const affectedFarmerIds = new Set<string>();
     const OUTBREAK_DANGER_RADIUS = 500;
     const radiusInfected = getRadiusFromArea(currentLand.total_area);
 
     otherLands.forEach((other) => {
+      if (other.owner_id === currentLand.owner_id) return;
+
       const targetLoc = other.location as any;
       if (targetLoc?.latitude && targetLoc?.longitude) {
         const distance = calculateDistance(
@@ -142,19 +187,25 @@ class DailyActivityService extends BaseService<
           radiusInfected +
           getRadiusFromArea(other.total_area) +
           OUTBREAK_DANGER_RADIUS;
+
         if (distance <= totalDangerZone) affectedFarmerIds.add(other.owner_id);
       }
     });
 
     if (affectedFarmerIds.size > 0) {
+      const farmerIds = Array.from(affectedFarmerIds);
       await prisma.notification.createMany({
-        data: Array.from(affectedFarmerIds).map((userId) => ({
+        data: farmerIds.map((userId) => ({
           user_id: userId,
           title: `⚠️ Waspada Wabah: ${disease.name}`,
           message: `AI mendeteksi ${disease.name} di lahan sekitar Anda. Segera cek kondisi tanaman Anda.`,
           type: "OUTBREAK_ALERT",
         })),
       });
+
+      for (const id of farmerIds) {
+        await this.invalidateCache({ userId: id });
+      }
     }
   }
 
@@ -177,10 +228,15 @@ class DailyActivityService extends BaseService<
     cycleId: string,
     activityDate: Date | string,
   ) {
-    const cycle = await prisma.plantingCycle.findUnique({
-      where: { id: cycleId },
-      select: { id: true, status: true, start_date: true },
-    });
+    const cycle = await cacheHelper.getOrSet(
+      `planting-cycles:detail:${cycleId}`,
+      async () => {
+        return await prisma.plantingCycle.findUnique({
+          where: { id: cycleId },
+          select: { id: true, status: true, start_date: true },
+        });
+      },
+    );
 
     if (!cycle) throw new ApiError(404, "Siklus tanam tidak ditemukan.");
 
@@ -190,7 +246,7 @@ class DailyActivityService extends BaseService<
     if (actDate < startDate) {
       throw new ApiError(
         400,
-        `Tanggal aktivitas tidak boleh mendahului tanggal tanam.`,
+        "Tanggal aktivitas tidak boleh mendahului tanggal tanam.",
       );
     }
 
