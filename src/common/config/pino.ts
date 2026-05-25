@@ -1,19 +1,34 @@
 import pino from "pino";
 import { pinoHttp } from "pino-http";
+import { env } from "./env";
+
+const isDev = env.NODE_ENV === "development";
 
 export const logger = pino({
-  transport: {
-    target: "pino-pretty",
-    options: {
-      colorize: true,
-      translateTime: "HH:MM:ss",
-      ignore: "pid,hostname,req,res",
-      messageFormat: "{msg}",
-    },
-  },
+  level: isDev ? "debug" : "info",
+
+  transport: isDev
+    ? {
+        target: "pino-pretty",
+        options: {
+          colorize: true,
+          translateTime: "HH:MM:ss",
+          ignore: "pid,hostname",
+          messageFormat: "{msg}",
+        },
+      }
+    : undefined,
 });
+
 export const httpLogger = pinoHttp({
-  logger: logger,
+  logger,
+
+  customSuccessMessage: (req, res, responseTime) => {
+    return `✅ ${req.method} ${req.url} ${res.statusCode} (${responseTime}ms)`;
+  },
+  customErrorMessage: (req, res, err) => {
+    return `❌ ${req.method} ${req.url} ${res.statusCode} - ${err.message}`;
+  },
 
   serializers: {
     req: (req) => ({
@@ -23,12 +38,5 @@ export const httpLogger = pinoHttp({
     res: (res) => ({
       statusCode: res.statusCode,
     }),
-  },
-
-  customSuccessMessage: (req, res) => {
-    return `✅ ${req.method} ${req.url} ${res.statusCode}`;
-  },
-  customErrorMessage: (req, res, err) => {
-    return `❌ ${req.method} ${req.url} ${res.statusCode} - ${err.message}`;
   },
 });
