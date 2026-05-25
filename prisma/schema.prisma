@@ -109,7 +109,7 @@ model PlantingCycle {
   harvest_reports      HarvestReport[]
   aiRecommendationLogs AiRecommendationLog[]
   commodity       Commodity @relation(fields: [commodity_id], references: [id])
-  @@unique([land_id, start_date])
+  
   @@map("planting_cycles")
 }
 

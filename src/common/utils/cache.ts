@@ -7,46 +7,41 @@ export const cacheHelper = {
     fetchFn: () => Promise<T>,
     ttl: number = 3600,
   ): Promise<T> => {
-    const safeKey = String(key);
-
-    const cached = await redisClient.get(safeKey);
+    const cached = await redisClient.get(String(key));
     if (cached) return JSON.parse(cached) as T;
 
     const freshData = await fetchFn();
 
     if (freshData !== undefined && freshData !== null) {
-      await redisClient.set(safeKey, JSON.stringify(freshData), { EX: ttl });
+      await redisClient.set(String(key), JSON.stringify(freshData), {
+        EX: ttl,
+      });
     }
 
     return freshData;
   },
 
   delete: async (key: string | string[]) => {
-    if (Array.isArray(key)) {
-      if (key.length === 0) return;
-
-      const safeKeys = key.map((k) => String(k));
-      await redisClient.del(safeKeys);
-    } else {
-      await redisClient.del(String(key));
-    }
+    const keys = Array.isArray(key) ? key.map(String) : [String(key)];
+    if (keys.length > 0) await redisClient.del(keys);
   },
 
   deletePattern: async (pattern: string) => {
-    const keys = await redisClient.keys(String(pattern));
-    if (keys.length > 0) {
-      await redisClient.del(keys);
-    }
-  },
-  invalidateModule: async (moduleName: string) => {
-    const pattern = `cache:*${moduleName}*`;
-    const keys = await redisClient.keys(pattern);
-    if (keys.length > 0) {
-      await redisClient.del(keys);
-      console.log(
-        `[Cache] Invalidated ${keys.length} keys for module: ${moduleName}`,
-      );
-    }
+    let cursor = 0;
+
+    do {
+      const reply = await redisClient.scan(String(cursor), {
+        MATCH: String(pattern),
+        COUNT: 100,
+      });
+
+      cursor = Number(reply.cursor);
+
+      const keys = reply.keys;
+      if (keys && keys.length > 0) {
+        await redisClient.del(keys);
+      }
+    } while (cursor !== 0);
   },
 };
 
@@ -55,9 +50,11 @@ export const autoCache = (
   isPrivate: boolean = false,
 ) => {
   return async (req: Request, res: Response, next: NextFunction) => {
-    if (req.method !== "GET") {
-      return next();
-    }
+    if (req.method !== "GET") return next();
+
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
 
     const userId = (req as any).user?.id || (req as any).user?.sub;
     const cacheKey =
@@ -67,7 +64,6 @@ export const autoCache = (
 
     try {
       const forceRefresh = req.headers["cache-control"] === "no-cache";
-
       const cachedData = await redisClient.get(cacheKey);
 
       if (cachedData && !forceRefresh) {
@@ -77,16 +73,13 @@ export const autoCache = (
       }
 
       const originalJson = res.json;
-      res.json = (body) => {
+      res.json = function (body) {
         if (res.statusCode === 200 && body) {
-          const stringifiedBody = JSON.stringify(body);
           redisClient
-            .set(cacheKey, stringifiedBody, { EX: duration })
-            .catch((err) => console.error("Redis Cache Set Error:", err));
+            .set(cacheKey, JSON.stringify(body), { EX: duration })
+            .catch((err) => console.error(err));
         }
-
-        res.json = originalJson;
-        return res.json(body);
+        return originalJson.call(this, body);
       };
 
       res.setHeader("X-Cache", "MISS");

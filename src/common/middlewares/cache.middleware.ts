@@ -3,6 +3,10 @@ import redisClient from "../config/redis";
 
 export const cacheMiddleware = (duration: number) => {
   return async (req: Request, res: Response, next: NextFunction) => {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+
     const key = `cache:${req.originalUrl || req.url}`;
 
     try {
