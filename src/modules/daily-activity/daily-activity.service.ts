@@ -1,6 +1,7 @@
 import { BaseService } from "@/common/base/service";
 import { prisma } from "@/common/config/prisma";
 import { ApiError } from "@/common/utils/api-error";
+import { calculateDistance, getRadiusFromArea } from "@/common/utils/geo";
 import { Prisma, STATUS, type DailyActivity } from "@/generated/prisma/client";
 import type {
   AiRawResultDto,
@@ -88,7 +89,7 @@ class DailyActivityService extends BaseService<
       where: { label_ai: aiData.disease_name },
     });
 
-    return await tx.healthReport.create({
+    const report = await tx.healthReport.create({
       data: {
         cycle_id: cycleId,
         disease_id: disease?.id || null,
@@ -96,12 +97,65 @@ class DailyActivityService extends BaseService<
         image_key: key,
         confidence_score: aiData.confidence_score,
         is_outbreak_trigger: aiData.is_dangerous,
-
         gemini_insight: aiData.insight as unknown as Prisma.InputJsonValue,
-
         created_at: activityDate,
       },
+
+      include: {
+        cycle: {
+          include: { land: true },
+        },
+      },
     });
+    console.log(aiData.is_dangerous);
+
+    if (aiData.is_dangerous && disease) {
+      setImmediate(() => this.handleOutbreakAlert(report.cycle.land, disease));
+    }
+
+    return report;
+  }
+  private async handleOutbreakAlert(currentLand: any, disease: any) {
+    const loc = currentLand.location as any;
+    if (!loc?.latitude || !loc?.longitude) return;
+
+    const otherLands = await prisma.land.findMany({
+      where: { owner_id: { not: currentLand.owner_id } },
+      select: { owner_id: true, location: true, total_area: true },
+    });
+
+    const affectedFarmerIds = new Set<string>();
+    const OUTBREAK_DANGER_RADIUS = 500;
+    const radiusInfected = getRadiusFromArea(currentLand.total_area);
+
+    otherLands.forEach((other) => {
+      const targetLoc = other.location as any;
+      if (targetLoc?.latitude && targetLoc?.longitude) {
+        const distance = calculateDistance(
+          Number(loc.latitude),
+          Number(loc.longitude),
+          Number(targetLoc.latitude),
+          Number(targetLoc.longitude),
+        );
+
+        const totalDangerZone =
+          radiusInfected +
+          getRadiusFromArea(other.total_area) +
+          OUTBREAK_DANGER_RADIUS;
+        if (distance <= totalDangerZone) affectedFarmerIds.add(other.owner_id);
+      }
+    });
+
+    if (affectedFarmerIds.size > 0) {
+      await prisma.notification.createMany({
+        data: Array.from(affectedFarmerIds).map((userId) => ({
+          user_id: userId,
+          title: `⚠️ Waspada Wabah: ${disease.name}`,
+          message: `AI mendeteksi ${disease.name} di lahan sekitar Anda. Segera cek kondisi tanaman Anda.`,
+          type: "OUTBREAK_ALERT",
+        })),
+      });
+    }
   }
 
   private async handleHarvesting(

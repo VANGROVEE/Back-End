@@ -1,38 +1,43 @@
-import aiModelRoute from "@/modules/ai-models/ai-model.route";
-import aiRecommendationRoute from "@/modules/ai-recommendation/ai-recommendation.route";
-import analyticsRoute from "@/modules/analytics/analytics.route";
+import { Router } from "express";
+import { rootHandler } from "@/modules/root";
+
+
 import authRoute from "@/modules/auth/auth.route";
-import commodityRoute from "@/modules/commodites/commodity.route";
-import dailyActivityRoute from "@/modules/daily-activity/daily-activity.route";
-import harvestRoute from "@/modules/harvest-report/harvest.route";
-import healthRoute from "@/modules/health-report/health.route";
+import userRoute from "@/modules/user/user.route";
 import landRoute from "@/modules/land/land.route";
 import plantingCycleRoute from "@/modules/planting-cycles/planting-cycle.route";
-import { rootHandler } from "@/modules/root";
-import userRoute from "@/modules/user/user.route";
-import { Router } from "express";
+import aiRecommendationRoute from "@/modules/ai-recommendation/ai-recommendation.route";
+import dailyActivityRoute from "@/modules/daily-activity/daily-activity.route";
+import analyticsRoute from "@/modules/analytics/analytics.route";
+import commodityRoute from "@/modules/commodites/commodity.route";
+import healthRoute from "@/modules/health-report/health.route";
+import aiModelRoute from "@/modules/ai-models/ai-model.route";
+import harvestRoute from "@/modules/harvest-report/harvest.route";
+import notificationRoute from "@/modules/notifications/notification.route";
 
 const router = Router();
 
+
+const moduleRoutes = [
+  { path: "/auth", route: authRoute },
+  { path: "/users", route: userRoute },
+  { path: "/land", route: landRoute },
+  { path: "/planting-cycle", route: plantingCycleRoute },
+  { path: "/ai-recommendation", route: aiRecommendationRoute },
+  { path: "/daily-activities", route: dailyActivityRoute },
+  { path: "/analytics", route: analyticsRoute },
+  { path: "/commodities", route: commodityRoute },
+  { path: "/health-report", route: healthRoute },
+  { path: "/ml-model", route: aiModelRoute },
+  { path: "/harvest-report", route: harvestRoute },
+  { path: "/notifications", route: notificationRoute },
+];
+
 router.get("/", rootHandler);
 
-authRoute(router, "/auth");
 
-userRoute(router, "/users");
+moduleRoutes.forEach((route) => {
+  route.route(router, route.path);
+});
 
-landRoute(router, "/land");
-plantingCycleRoute(router, "/planting-cycle");
-
-aiRecommendationRoute(router, "/ai-recommendation");
-
-dailyActivityRoute(router, "/daily-activities");
-analyticsRoute(router, "/analytics");
-
-commodityRoute(router, "/commodities");
-
-healthRoute(router, "/health-report");
-
-aiModelRoute(router, "/ml-model");
-
-harvestRoute(router, "/harvest-report");
 export default router;
