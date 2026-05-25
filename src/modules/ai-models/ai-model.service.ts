@@ -1,6 +1,8 @@
 import { BaseService } from "@/common/base/service";
+import { env } from "@/common/config/env";
 import { prisma } from "@/common/config/prisma";
 import { ApiError } from "@/common/utils/api-error";
+import { cacheHelper } from "@/common/utils/cache";
 import { calculateDistance, getRadiusFromArea } from "@/common/utils/geo";
 import type { HealthReport } from "@/generated/prisma/client";
 import axios from "axios";
@@ -20,7 +22,7 @@ export interface AIAnalysisResult {
 }
 
 const AI_ENDPOINT =
-  process.env.AI_MODEL_ENDPOINT ||
+  env.AI_MODEL_ENDPOINT ||
   "https://ai-engineer-production-382f.up.railway.app/predict";
 
 class AiModelService extends BaseService<
@@ -28,53 +30,48 @@ class AiModelService extends BaseService<
   typeof prisma.healthReport
 > {
   constructor() {
-    super(prisma.healthReport);
+    super(prisma.healthReport, "ai-analysis");
   }
 
-  /**
-   * TAHAP 1: Predict Only Digunakan untuk preview hasil AI di Frontend sebelum
-   * user menekan tombol simpan.
-   */
   async predictOnly(imageUrl: string): Promise<AIAnalysisResult> {
     return await this.hitMlServer(imageUrl);
   }
 
-  /**
-   * TAHAP 2: Simpan Laporan Digunakan saat user menyetujui hasil AI dan ingin
-   * menyimpannya bersama daily activity.
-   */
   async saveHealthReport(
     payload: {
       cycle_id: string;
       image_url: string;
       image_key: string;
       notes?: string;
-      ai_raw_result: AIAnalysisResult; // Hasil dari predictOnly yang dikirim balik dari FE
+      ai_raw_result: AIAnalysisResult;
     },
     tx?: any,
   ) {
-    const db = tx || prisma; // Mendukung penggunaan transaksi Prisma
+    const db = tx || prisma;
 
     const cycleExists = await db.plantingCycle.findUnique({
       where: { id: payload.cycle_id },
       include: { land: true },
     });
 
-    if (!cycleExists) {
-      throw new ApiError(404, `Siklus tanam tidak ditemukan.`);
-    }
+    if (!cycleExists) throw new ApiError(404, `Siklus tanam tidak ditemukan.`);
 
     const { ai_raw_result } = payload;
 
-    // Cari ID penyakit di database lokal berdasarkan label AI
     let matchedDisease = null;
     if (
       ai_raw_result.isValidPlant &&
       ai_raw_result.disease_name !== "unknown"
     ) {
-      matchedDisease = await db.disease.findUnique({
-        where: { label_ai: ai_raw_result.disease_name },
-      });
+      matchedDisease = await cacheHelper.getOrSet(
+        `disease:label:${ai_raw_result.disease_name}`,
+        async () => {
+          return await db.disease.findUnique({
+            where: { label_ai: ai_raw_result.disease_name },
+          });
+        },
+        86400,
+      );
     }
 
     const geminiInsightPayload = {
@@ -96,7 +93,6 @@ class AiModelService extends BaseService<
       include: { disease: true },
     });
 
-    // Jalankan notifikasi wabah jika berbahaya (Non-blocking)
     if (
       newReport.is_outbreak_trigger &&
       matchedDisease &&
@@ -107,24 +103,39 @@ class AiModelService extends BaseService<
       );
     }
 
+    await this.invalidateCache();
+    await cacheHelper.delete(`health:reports-cycle:${payload.cycle_id}`);
+
     return newReport;
   }
 
-  /** Logika Notifikasi Wabah (Radius 500m) */
   private async handleOutbreakAlert(currentLand: any, disease: any) {
     const loc = currentLand.location as any;
     if (!loc?.latitude || !loc?.longitude) return;
 
-    const otherLands = await prisma.land.findMany({
-      where: { owner_id: { not: currentLand.owner_id } },
-      select: { owner_id: true, location: true, total_area: true },
-    });
+    const otherLands = await cacheHelper.getOrSet(
+      "lands:geo-data",
+      async () => {
+        return await prisma.land.findMany({
+          where: { is_active: true },
+          select: {
+            owner_id: true,
+            location: true,
+            total_area: true,
+            id: true,
+          },
+        });
+      },
+      1800,
+    );
 
     const affectedFarmerIds = new Set<string>();
     const OUTBREAK_DANGER_RADIUS = 500;
     const radiusInfected = getRadiusFromArea(currentLand.total_area);
 
-    otherLands.forEach((other) => {
+    otherLands.forEach((other: any) => {
+      if (other.owner_id === currentLand.owner_id) return;
+
       const targetLoc = other.location as any;
       if (targetLoc?.latitude && targetLoc?.longitude) {
         const distance = calculateDistance(
@@ -143,18 +154,25 @@ class AiModelService extends BaseService<
     });
 
     if (affectedFarmerIds.size > 0) {
+      const farmerIds = Array.from(affectedFarmerIds);
       await prisma.notification.createMany({
-        data: Array.from(affectedFarmerIds).map((userId) => ({
+        data: farmerIds.map((userId) => ({
           user_id: userId,
           title: `⚠️ Waspada Wabah: ${disease.name}`,
           message: `AI mendeteksi ${disease.name} di lahan sekitar Anda. Segera cek kondisi tanaman Anda.`,
           type: "OUTBREAK_ALERT",
         })),
       });
+
+      for (const id of farmerIds) {
+        await cacheHelper.delete([
+          `notifications:list:${id}`,
+          `notifications:unread_count:${id}`,
+        ]);
+      }
     }
   }
 
-  /** Hit Server Machine Learning */
   private async hitMlServer(imageUrl: string): Promise<AIAnalysisResult> {
     try {
       const response = await axios.post(
@@ -163,13 +181,11 @@ class AiModelService extends BaseService<
         { timeout: 15000 },
       );
       const rawData = response.data;
-
       if (!rawData) throw new ApiError(502, "Model ML tidak merespon.");
 
       const label = rawData.nama_penyakit || rawData.prediction || "unknown";
       const confidence = Number(rawData.confidence) || 0;
 
-      // Logic pemilihan label terbaik dari array predictions jika ada
       let predictionLabel = label;
       let confidenceScore = confidence;
 

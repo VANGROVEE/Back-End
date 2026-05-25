@@ -1,7 +1,8 @@
 import { authenticate } from "@/common/middlewares/auth";
 import { validate } from "@/common/middlewares/validate";
+import { autoCache } from "@/common/utils/cache";
 import { commonSchema } from "@/common/utils/schema";
-import type { Router } from "express";
+import { Router } from "express";
 import { landController } from "./land.controller";
 import "./land.docs";
 import {
@@ -9,20 +10,42 @@ import {
   createLandSchema,
   updateLandSchema,
 } from "./land.dto";
+
 export default (router: Router, prefix: string) => {
+  router.get(
+    `${prefix}/admin`,
+    authenticate,
+    autoCache(1800),
+    landController.getLands,
+  );
+
+  router.get(
+    prefix,
+    authenticate,
+    autoCache(1800, true),
+    landController.getAll,
+  );
+
+  router.get(
+    `${prefix}/stats`,
+    authenticate,
+    autoCache(3600),
+    landController.getStats,
+  );
+
+  router.get(
+    `${prefix}/:id`,
+    authenticate,
+    validate(commonSchema.paramsId),
+    autoCache(1800, true),
+    landController.getById,
+  );
+
   router.post(
-    prefix + "/admin",
+    `${prefix}/admin`,
     authenticate,
     validate(adminCreateLandSchema),
-
-    // requireAdmin,
     landController.adminCreate,
-  );
-  router.get(
-    prefix + "/admin",
-    authenticate,
-    // requireAdmin,
-    landController.getLands,
   );
 
   router.post(
@@ -30,17 +53,6 @@ export default (router: Router, prefix: string) => {
     authenticate,
     validate(createLandSchema),
     landController.create,
-  );
-
-  router.get(prefix, authenticate, landController.getAll);
-
-  router.get(prefix + "/stats", authenticate, landController.getStats);
-
-  router.get(
-    `${prefix}/:id`,
-    validate(commonSchema.paramsId),
-    authenticate,
-    landController.getById,
   );
 
   router.patch(
@@ -52,8 +64,8 @@ export default (router: Router, prefix: string) => {
 
   router.delete(
     `${prefix}/:id`,
-    validate(commonSchema.paramsId),
     authenticate,
+    validate(commonSchema.paramsId),
     landController.delete,
   );
 };

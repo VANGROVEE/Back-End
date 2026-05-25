@@ -1,6 +1,7 @@
 import { BaseService } from "@/common/base/service";
 import { prisma } from "@/common/config/prisma";
 import { ApiError } from "@/common/utils/api-error";
+import { cacheHelper } from "@/common/utils/cache";
 import type { PlantingCycle, STATUS } from "@/generated/prisma/client";
 import type {
   CreatePlantingCycleDto,
@@ -11,8 +12,10 @@ class PlantingCycleService extends BaseService<
   PlantingCycle,
   typeof prisma.plantingCycle
 > {
+  private readonly HEATMAP_CACHE_KEY = "planting-cycles:heatmap";
+
   constructor() {
-    super(prisma.plantingCycle);
+    super(prisma.plantingCycle, "planting-cycles");
   }
 
   async createCycle(data: CreatePlantingCycleDto) {
@@ -42,7 +45,7 @@ class PlantingCycleService extends BaseService<
       throw new ApiError(404, "Lahan tidak ditemukan.");
     }
 
-    return await prisma.plantingCycle.create({
+    const result = await prisma.plantingCycle.create({
       data: {
         land_id: data.land_id,
         commodity_id: data.commodity_id,
@@ -53,6 +56,11 @@ class PlantingCycleService extends BaseService<
         status: "PLANTING",
       },
     });
+
+    await this.invalidateCache();
+    await cacheHelper.deletePattern(`${this.HEATMAP_CACHE_KEY}:*`);
+
+    return result;
   }
 
   async updateCycle(id: string, data: UpdatePlantingCycleDto) {
@@ -75,7 +83,7 @@ class PlantingCycleService extends BaseService<
       }
     }
 
-    return await prisma.plantingCycle.update({
+    const result = await prisma.plantingCycle.update({
       where: { id },
       data: {
         land_id: data.land_id,
@@ -87,67 +95,81 @@ class PlantingCycleService extends BaseService<
         status: data.status as STATUS,
       },
     });
+
+    await this.invalidateCache(id);
+    await cacheHelper.deletePattern(`${this.HEATMAP_CACHE_KEY}:*`);
+
+    return result;
   }
 
   async getHeatmapCalendar(cycleId?: string) {
-    const activities = await prisma.dailyActivity.findMany({
-      select: {
-        activity_date: true,
-        activity_type: true,
+    const cacheKey = cycleId
+      ? `${this.HEATMAP_CACHE_KEY}:${cycleId}`
+      : `${this.HEATMAP_CACHE_KEY}:all`;
+
+    return cacheHelper.getOrSet(
+      cacheKey,
+      async () => {
+        const activities = await prisma.dailyActivity.findMany({
+          select: {
+            activity_date: true,
+            activity_type: true,
+          },
+          where: {
+            ...(cycleId ? { cycle_id: cycleId } : {}),
+            activity_date: {
+              not: undefined,
+            },
+          },
+          orderBy: {
+            activity_date: "asc",
+          },
+        });
+
+        const heatmapData: Record<
+          string,
+          { count: number; types: Record<string, number> }
+        > = {};
+
+        activities.forEach((activity) => {
+          const dateStr = activity.activity_date.toISOString().split("T")[0];
+          if (!dateStr) return;
+
+          if (!heatmapData[dateStr]) {
+            heatmapData[dateStr] = { count: 0, types: {} };
+          }
+
+          heatmapData[dateStr].count += 1;
+          const type = activity.activity_type;
+          heatmapData[dateStr].types[type] =
+            (heatmapData[dateStr].types[type] || 0) + 1;
+        });
+
+        const formattedResult = Object.entries(heatmapData).map(
+          ([date, data]) => {
+            let dominantType = "OTHER";
+            let maxCount = 0;
+
+            for (const [type, count] of Object.entries(data.types)) {
+              if (count > maxCount) {
+                maxCount = count;
+                dominantType = type;
+              }
+            }
+
+            return {
+              date,
+              count: data.count,
+              details: data.types,
+              dominant_type: dominantType,
+            };
+          },
+        );
+
+        return formattedResult;
       },
-      where: {
-        ...(cycleId ? { cycle_id: cycleId } : {}),
-        activity_date: {
-          not: undefined,
-        },
-      },
-
-      orderBy: {
-        activity_date: "asc",
-      },
-    });
-
-    const heatmapData: Record<
-      string,
-      { count: number; types: Record<string, number> }
-    > = {};
-
-    activities.forEach((activity) => {
-      const dateStr = activity.activity_date.toISOString().split("T")[0];
-
-      if (!dateStr) return;
-
-      if (!heatmapData[dateStr]) {
-        heatmapData[dateStr] = { count: 0, types: {} };
-      }
-
-      heatmapData[dateStr].count += 1;
-
-      const type = activity.activity_type;
-      heatmapData[dateStr].types[type] =
-        (heatmapData[dateStr].types[type] || 0) + 1;
-    });
-
-    const formattedResult = Object.entries(heatmapData).map(([date, data]) => {
-      let dominantType = "OTHER";
-      let maxCount = 0;
-
-      for (const [type, count] of Object.entries(data.types)) {
-        if (count > maxCount) {
-          maxCount = count;
-          dominantType = type;
-        }
-      }
-
-      return {
-        date,
-        count: data.count,
-        details: data.types,
-        dominant_type: dominantType,
-      };
-    });
-
-    return formattedResult;
+      1800,
+    );
   }
 }
 

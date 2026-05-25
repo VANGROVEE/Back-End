@@ -1,10 +1,11 @@
 import { prisma } from "@/common/config/prisma";
 import { supabase } from "@/common/lib/supabase";
-
 import { ApiError } from "@/common/utils/api-error";
+import { cacheHelper } from "@/common/utils/cache";
 import type { LoginDto, RegisterAuhtDto, UpdateAuthDto } from "./auth.dto";
 
 export const authService = {
+
   login: async (payload: LoginDto) => {
     const { email, password } = payload;
 
@@ -41,8 +42,12 @@ export const authService = {
       where: { id: authData.user.id },
     });
 
+    await cacheHelper.deletePattern("users:all:*");
+    await cacheHelper.delete("users:stats");
+
     return { user: user || authData.user };
   },
+
   update: async (currentId: string, payload: UpdateAuthDto) => {
     const { email, name, password } = payload;
 
@@ -53,21 +58,20 @@ export const authService = {
     if (!existingUser)
       throw new ApiError(404, "User tidak ditemukan di database");
 
-    const targetEmail = email || existingUser.email;
-
     const { data: listData } = await supabase.auth.admin.listUsers();
-
     const authUser = listData.users.find((u) => u.email === existingUser.email);
 
     if (!authUser)
       throw new ApiError(404, "User tidak ditemukan di Supabase Auth");
 
-    const { data: authData, error: authError } =
-      await supabase.auth.admin.updateUserById(authUser.id, {
+    const { error: authError } = await supabase.auth.admin.updateUserById(
+      authUser.id,
+      {
         email: email,
         password,
         user_metadata: { full_name: name },
-      });
+      },
+    );
 
     if (authError) throw new ApiError(400, authError.message);
 
@@ -78,6 +82,13 @@ export const authService = {
         name: name,
       },
     });
+
+    await cacheHelper.delete([
+      `user:detail:${currentId}`,
+      "users:all:*",
+      "users:stats",
+    ]);
+    await cacheHelper.deletePattern("users:all:*");
 
     return updatedUser;
   },
@@ -91,7 +102,6 @@ export const authService = {
       throw new ApiError(404, "User tidak ditemukan di database");
 
     const { data: listData } = await supabase.auth.admin.listUsers();
-
     const targetUser = listData.users.find(
       (u) => u.email === existingUser.email,
     );
@@ -99,9 +109,13 @@ export const authService = {
     if (!targetUser)
       throw new ApiError(404, "User tidak ditemukan di Supabase Auth");
 
-    const { data: authData, error: authError } =
-      await supabase.auth.admin.deleteUser(targetUser.id);
+    const { error: authError } = await supabase.auth.admin.deleteUser(
+      targetUser.id,
+    );
     if (authError) throw new ApiError(400, authError.message);
+
+    await cacheHelper.delete([`user:detail:${currentId}`, "users:stats"]);
+    await cacheHelper.deletePattern("users:all:*");
 
     return targetUser.id;
   },

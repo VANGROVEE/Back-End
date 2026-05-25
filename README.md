@@ -1,93 +1,76 @@
----
-
 # Vangrove Back-End 🌿
 
-Sistem cerdas manajemen agri-tech Mangrove berbasis **Decision Support System (DSS)**. Menggunakan Bun sebagai runtime utama, Prisma untuk ORM, dan integrasi Google Gemini AI untuk rekomendasi operasional serta efisiensi energi.
-
-## 🚀 Fitur Utama
-- **AI Recommendation Engine**: Menggunakan Google Gemini 1.5 Flash untuk analisis data historis dan prediksi cuaca.
-- **Weather Integration**: Integrasi *real-time* dengan OpenWeatherMap API.
-- **Energy Monitoring**: Pelacakan konsumsi daya pompa air dan efisiensi operasional.
-- **Security**: Autentikasi menggunakan Passport JWT dan validasi skema ketat menggunakan Zod.
-- **Documentation**: API Auto-generated menggunakan Swagger/OpenAPI.
-
-## 🛠️ Stack Teknologi
-- **Runtime**: [Bun](https://bun.sh)
-- **Framework**: Express.js (TypeScript)
-- **Database**: PostgreSQL dengan Prisma ORM
-- **AI**: Google Generative AI (Gemini)
-- **Validation**: Zod
-- **Logger**: Pino & Pino-pretty
+Sistem cerdas manajemen agri-tech Mangrove berbasis **Decision Support System (DSS)**. Menggunakan Bun sebagai runtime utama, Prisma untuk ORM, Redis untuk Caching, dan integrasi Google Gemini AI.
 
 ---
 
-## 📋 Prasyarat
+## 1. 🚀 Fitur Utama
+
+- **AI Recommendation Engine**: Analisis data operasional menggunakan Google Gemini 1.5 Flash.
+- **High Performance Caching**: Optimasi latensi API menggunakan **Redis** (Response time < 10ms).
+- **Energy Monitoring**: Pelacakan konsumsi daya pompa air dan efisiensi energi.
+- **Real-time Logging**: Mentoring performa aplikasi menggunakan **Pino**.
+- **Automated Docs**: Dokumentasi API interaktif menggunakan Swagger.
+
+---
+
+## 2. 🛠️ Stack Teknologi
+
+- **Runtime**: [Bun](https://bun.sh)
+- **Framework**: Express.js (TypeScript)
+- **Database**: PostgreSQL & Redis
+- **ORM**: Prisma
+- **AI**: Google Generative AI (Gemini)
+- **Validation**: Zod
+- **Logger**: Pino
+
+---
+
+## 3. 📋 Prasyarat
 
 Sebelum memulai, pastikan Anda telah menginstal:
 
 - [Bun](https://bun.sh) (v1.1.x atau terbaru)
-- PostgreSQL
+- **Docker & Docker Compose** (Wajib untuk menjalankan Database & Redis secara lokal)
 
 ---
 
-## ⚙️ Instalasi & Setup
+## 4. ⚙️ Instalasi & Setup
 
-1. **Clone repositori**
-
-   ```bash
-   git clone https://github.com/VANGROVEE/Back-End.git
-   cd back-end
-   ```
-
-2. **Instal dependencies**
-
-   ```bash
-   bun install
-
-   ```
-
-````
-
-3. **Konfigurasi Environment**
-   Buat file `.env` di root direktori dan sesuaikan variabel berikut:
-   ```env
-   # App
-   PORT=8000
-   NODE_ENV=development
-
-   # Database
-   DATABASE_URL="postgresql://user:password@localhost:5432/vangrove"
-
-   # AI & Weather
-   GEMINI_API_KEY=your_gemini_key
-   OPENWEATHER_API_KEY=your_openweather_key
-   OPENWEATHER_BASE_URL=https://api.openweathermap.org/data/2.5/forecast
-
-   # Auth & Supabase
-   JWT_SECRET=your_minimal_32_characters_secret
-   SUPABASE_URL=your_supabase_url
-   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-````
-
-4. **Prisma Setup**
-   Generate client dan jalankan migrasi:
-   ```bash
-   bunx prisma generate
-   bunx prisma migrate dev
-   ```
+1.  **Clone Repositori**
+    ```bash
+    git clone [https://github.com/VANGROVEE/Back-End.git](https://github.com/VANGROVEE/Back-End.git)
+    cd back-end
+    ```
+2.  **Instal Dependensi**
+    ```bash
+    bun install
+    ```
+3.  **Konfigurasi Environment**
+    Salin template `.env.example` menjadi `.env` dan isi kredensial yang diperlukan:
+    ```bash
+    cp .env.example .env
+    ```
+4.  **Jalankan Infrastruktur (Docker)**
+    Jalankan PostgreSQL dan Redis dalam satu perintah:
+    ```bash
+    docker-compose up -d
+    ```
+5.  **Setup Database**
+    Generate Prisma client dan jalankan migrasi:
+    ```bash
+    bunx prisma generate
+    bunx prisma migrate dev
+    ```
 
 ---
 
-## 🏃 Menjalankan Aplikasi
-
-Aplikasi menyediakan dua mode utama sesuai dengan `package.json`:
+## 5. 🏃 Menjalankan Aplikasi
 
 - **Mode Pengembangan (Hot Reload)**
-
   ```bash
   bun run dev
   ```
-
 - **Mode Produksi**
   ```bash
   bun run start
@@ -95,32 +78,12 @@ Aplikasi menyediakan dua mode utama sesuai dengan `package.json`:
 
 ---
 
-## 🧹 Linting & Formatting
+## 6. 📑 Monitoring & Dokumentasi
 
-Proyek ini menggunakan ESLint dan Prettier untuk menjaga kualitas kode.
-
-- **Check & Fix Lint**: `bun run lint`
-- **Auto Format**: `bun run format`
-
----
-
-## 📑 API Documentation
-
-Setelah server berjalan, Anda dapat mengakses dokumentasi API (Swagger) pada alamat:
-`http://localhost:8000/docs` (atau sesuai konfigurasi PORT Anda).
-
-## 🤝 Kontribusi
-
-Proyek ini menggunakan **Commitizen** untuk standarisasi pesan commit. Untuk melakukan commit, gunakan:
-
-```bash
-git cz
-```
+- **API Documentation**: `http://localhost:8000/api/v1/docs`
+- **Health Check**: `http://localhost:8000/api/v1/health`
+- **Performance Monitoring**: Pantau durasi request langsung di terminal melalui log Pino yang mencatat response time setiap request secara real-time.
 
 ---
 
 **Vangrove Team** - _Membangun masa depan pesisir dengan teknologi._
-
-```
-
-```

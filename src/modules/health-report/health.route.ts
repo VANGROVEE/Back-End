@@ -1,6 +1,6 @@
 import { authenticate } from "@/common/middlewares/auth";
 import { validate } from "@/common/middlewares/validate";
-
+import { autoCache } from "@/common/utils/cache";
 import { commonSchema } from "@/common/utils/schema";
 import { Router } from "express";
 import { healthController } from "./health.controller";
@@ -15,6 +15,7 @@ export default (router: Router, prefix: string) => {
     prefix,
     authenticate,
     validate(getHealthReportQuerySchema),
+    autoCache(1800, true),
     healthController.getAll,
   );
 
@@ -22,11 +23,12 @@ export default (router: Router, prefix: string) => {
     `${prefix}/:id`,
     authenticate,
     validate(commonSchema.paramsId),
+    autoCache(1800, true),
     healthController.getById,
   );
 
   router.post(
-    `${prefix}`,
+    prefix,
     authenticate,
     validate(createHealthReportBodySchema),
     healthController.create,
@@ -39,5 +41,10 @@ export default (router: Router, prefix: string) => {
     healthController.update,
   );
 
-  router.delete(`${prefix}/:id`, authenticate, healthController.delete);
+  router.delete(
+    `${prefix}/:id`,
+    authenticate,
+    validate(commonSchema.paramsId),
+    healthController.delete,
+  );
 };
