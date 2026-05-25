@@ -6,18 +6,18 @@ import { healthService } from "./health.service";
 export const healthController = {
   create: catchAsync(async (req: Request, res: Response) => {
     const payload = req.body;
-
     const data = await healthService.create(payload);
     return sendResponse(res, 201, "Laporan kesehatan berhasil dibuat!", data);
   }),
 
   getAll: catchAsync(async (req: Request, res: Response) => {
     const rawCycleId = req.query.cycle_id;
+    console.log(rawCycleId);
 
     const cycle_id = typeof rawCycleId === "string" ? rawCycleId : undefined;
-
     const data = await healthService.findAll({
       where: cycle_id ? { cycle_id: cycle_id } : undefined,
+      orderBy: { created_at: "desc" },
     });
 
     return sendResponse(

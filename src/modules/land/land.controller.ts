@@ -15,7 +15,7 @@ export const landController = {
   getAll: catchAsync(async (req: Request, res: Response) => {
     const userId = req.user.sub;
     const data = await landService.findAll({
-      where: { owner_id: userId },
+      where: { owner_id: userId, is_active: true },
       orderBy: { created_at: "desc" },
     });
     return sendResponse(res, 200, "Daftar Lahan Berhasil Diambil", data);
@@ -37,7 +37,7 @@ export const landController = {
 
   delete: catchAsync(async (req: Request, res: Response) => {
     const id = req.params.id as string;
-    await landService.delete(id);
+    await landService.softDelete(id);
     return sendResponse(res, 200, "Lahan Berhasil Dihapus", null);
   }),
 

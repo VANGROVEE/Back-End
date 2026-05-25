@@ -1,4 +1,5 @@
 import { registry } from "@/common/docs/openapi-registry";
+import { STATUS } from "@/generated/prisma/enums";
 import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
 
@@ -35,10 +36,7 @@ export const createPlantingCycleBodySchema = z
       example: "2026-10-30T08:00:00Z",
     }),
 
-    status: z
-      .enum(["ACTIVE", "HARVESTED", "COMPLETED", "FAILED"])
-      .default("ACTIVE")
-      .openapi({ example: "ACTIVE" }),
+    status: z.enum(STATUS).default("PLANTING").openapi({ example: "PLANTING" }),
   })
   .strict()
   .openapi("CreatePlantingCycleBody");

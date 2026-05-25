@@ -16,13 +16,30 @@ class PlantingCycleService extends BaseService<
   }
 
   async createCycle(data: CreatePlantingCycleDto) {
+    const activeCycle = await prisma.plantingCycle.findFirst({
+      where: {
+        land_id: data.land_id,
+        commodity_id: data.commodity_id,
+        status: {
+          in: ["PLANTING", "HARVESTED"],
+        },
+      },
+    });
+
+    if (activeCycle) {
+      throw new ApiError(
+        400,
+        "Lahan masih digunakan. Selesaikan atau tandai gagal panen pada siklus sebelumnya.",
+      );
+    }
+
     const landExists = await prisma.land.findUnique({
       where: { id: data.land_id },
       select: { id: true },
     });
 
     if (!landExists) {
-      throw new ApiError(404, "Lahan tidak ditemukan. Pastikan land_id benar.");
+      throw new ApiError(404, "Lahan tidak ditemukan.");
     }
 
     return await prisma.plantingCycle.create({
@@ -33,7 +50,7 @@ class PlantingCycleService extends BaseService<
         planting_method: data.planting_method,
         start_date: data.start_date,
         estimated_harvest: data.estimated_harvest,
-        status: data.status as STATUS,
+        status: "PLANTING",
       },
     });
   }

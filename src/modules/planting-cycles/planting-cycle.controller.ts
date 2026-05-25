@@ -75,7 +75,9 @@ export const plantingCycleController = {
 
     if (!id) throw new ApiError(400, "ID siklus tanam wajib diisi");
 
-    const result = await plantingCycleService.findById(id as string);
+    const result = await plantingCycleService.findById(id as string, {
+      include: { commodity: true },
+    });
 
     if (!result) throw new ApiError(404, "Siklus tanam tidak ditemukan");
 
