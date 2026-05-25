@@ -11,6 +11,14 @@ class CommodityService extends BaseService<Commodity, typeof prisma.commodity> {
     super(prisma.commodity, "commodities");
   }
 
+  private async invalidateExtraCache() {
+    await Promise.all([
+      cacheHelper.delete(this.COMMODITY_STATS_KEY),
+      cacheHelper.delete("commodities:ai-supported"),
+      cacheHelper.deletePattern("cycle:ai-check:*"),
+    ]);
+  }
+
   async uploadCommodities(buffer: Buffer) {
     const commodities = parseExcelToJson(buffer, (row) => {
       if (!row.name || !row.slug_ai || !row.category) return null;
@@ -28,10 +36,7 @@ class CommodityService extends BaseService<Commodity, typeof prisma.commodity> {
       skipDuplicates: true,
     });
 
-    await this.invalidateCache();
-    await cacheHelper.delete(this.COMMODITY_STATS_KEY);
-
-    await cacheHelper.deletePattern("cycle:ai-check:*");
+    await Promise.all([this.invalidateCache(), this.invalidateExtraCache()]);
 
     return result;
   }
@@ -48,9 +53,7 @@ class CommodityService extends BaseService<Commodity, typeof prisma.commodity> {
             }),
             prisma.commodity.groupBy({
               by: ["category"],
-              _count: {
-                id: true,
-              },
+              _count: { id: true },
             }),
           ]);
 
@@ -63,10 +66,10 @@ class CommodityService extends BaseService<Commodity, typeof prisma.commodity> {
         );
 
         return {
-          total_commodities: totalCommodities,
-          total_ai_supported: totalAiSupported,
+          total_commodities: String(totalCommodities),
+          total_ai_supported: String(totalAiSupported),
+          total_categories: String(groupingByCategory.length),
           categories,
-          total_categories: groupingByCategory.length,
         };
       },
       86400,

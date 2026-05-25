@@ -11,12 +11,14 @@ export type PrismaDelegate = {
 
 export abstract class BaseService<T, D extends PrismaDelegate> {
   protected cachePrefix: string;
+  protected autoCachePattern: string;
 
   constructor(
     protected model: D,
     cachePrefix: string,
   ) {
     this.cachePrefix = cachePrefix;
+    this.autoCachePattern = `cache:*${cachePrefix}*`;
   }
 
   protected getListKey(args?: any) {
@@ -27,14 +29,39 @@ export abstract class BaseService<T, D extends PrismaDelegate> {
     return `${this.cachePrefix}:detail:${id}`;
   }
 
-  protected async invalidateCache(id?: string) {
-    await cacheHelper.deletePattern(`${this.cachePrefix}:all:*`);
-
-    if (id) {
-      await cacheHelper.delete(this.getDetailKey(id));
-    }
+  protected createUserKey(userId: string, suffix: string) {
+    return `${this.cachePrefix}:user:${userId}:${suffix}`;
   }
 
+  protected async invalidateCache(options?: {
+    id?: string;
+    userId?: string;
+    suffixes?: string[];
+  }) {
+    const promises: Promise<any>[] = [
+      // Hapus cache list internal & cache otomatis middleware
+      cacheHelper.deletePattern(`${this.cachePrefix}:all:*`),
+      cacheHelper.deletePattern(this.autoCachePattern),
+    ];
+
+    // Jika ada ID detail
+    if (options?.id) {
+      promises.push(cacheHelper.delete(this.getDetailKey(options.id)));
+    }
+
+    // Jika ada User ID (untuk modul seperti Notifications/Orders)
+    if (options?.userId) {
+      const suffixes = options.suffixes || ["list", "unread_count"];
+      const userKeys = suffixes.map((s) =>
+        this.createUserKey(options.userId!, s),
+      );
+      promises.push(cacheHelper.delete(userKeys));
+    }
+
+    await Promise.all(promises);
+  }
+
+  /** Implementasi Method Standar */
   async findAll(args?: Parameters<D["findMany"]>[0]): Promise<T[]> {
     return cacheHelper.getOrSet(this.getListKey(args), async () => {
       return (await this.model.findMany(args as never)) as T[];
@@ -50,8 +77,8 @@ export abstract class BaseService<T, D extends PrismaDelegate> {
         where: { id },
         ...args,
       } as never);
-
-      if (!data) throw new ApiError(404, "Data tidak ditemukan!");
+      if (!data)
+        throw new ApiError(404, `Data ${this.cachePrefix} tidak ditemukan!`);
       return data as T;
     });
   }
@@ -64,7 +91,6 @@ export abstract class BaseService<T, D extends PrismaDelegate> {
       data: payload,
       ...args,
     } as never)) as T;
-
     await this.invalidateCache();
     return result;
   }
@@ -75,14 +101,12 @@ export abstract class BaseService<T, D extends PrismaDelegate> {
     args?: Omit<Parameters<D["update"]>[0], "where" | "data">,
   ): Promise<T> {
     await this.findById(id);
-
     const result = (await this.model.update({
       where: { id },
       data: payload,
       ...args,
     } as never)) as T;
-
-    await this.invalidateCache(id);
+    await this.invalidateCache({ id });
     return result;
   }
 
@@ -91,13 +115,11 @@ export abstract class BaseService<T, D extends PrismaDelegate> {
     args?: Omit<Parameters<D["delete"]>[0], "where">,
   ): Promise<T> {
     await this.findById(id);
-
     const result = (await this.model.delete({
       where: { id },
       ...args,
     } as never)) as T;
-
-    await this.invalidateCache(id);
+    await this.invalidateCache({ id });
     return result;
   }
 }

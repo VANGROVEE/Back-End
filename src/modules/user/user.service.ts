@@ -114,6 +114,7 @@ class UserService extends BaseService<User, typeof prisma.user> {
         const avgArea = totalUsers > 0 ? currentAreaSum / totalUsers : 0;
         const lastAvgArea =
           lastMonthUsers > 0 ? lastAreaSum / lastMonthUsers : 0;
+
         const userGrowth =
           lastMonthUsers > 0
             ? ((totalUsers - lastMonthUsers) / lastMonthUsers) * 100
@@ -121,7 +122,7 @@ class UserService extends BaseService<User, typeof prisma.user> {
 
         return {
           totalUsers: {
-            value: totalUsers,
+            value: String(totalUsers),
             growth: userGrowth.toFixed(0),
             label: "bulan ini",
           },
@@ -132,11 +133,13 @@ class UserService extends BaseService<User, typeof prisma.user> {
           },
           dataDiscipline: {
             value:
-              totalUsers > 0 ? Math.round((activeToday / totalUsers) * 100) : 0,
+              totalUsers > 0
+                ? String(Math.round((activeToday / totalUsers) * 100))
+                : "0",
             status: activeToday / totalUsers > 0.7 ? "High" : "Low",
           },
           documents: {
-            pending: pendingDocs,
+            pending: String(pendingDocs),
             label: "Sertifikat belum diunggah",
           },
         };
@@ -145,17 +148,21 @@ class UserService extends BaseService<User, typeof prisma.user> {
     );
   }
 
+  private async invalidateAllUserCache(id?: string) {
+    await Promise.all([
+      this.invalidateCache({ id }),
+      cacheHelper.delete(this.STATS_KEY),
+    ]);
+  }
+
   async createViaAdmin(
     payload: CreateUserDto,
     args?: Omit<Prisma.UserCreateArgs, "data">,
   ) {
-    const { email, name } = payload;
-    const password = "user123";
-
     const newUser = await authService.register({
-      email: email as string,
-      name: name as string,
-      password,
+      email: payload.email as string,
+      name: payload.name as string,
+      password: "user123",
     });
 
     let result = newUser.user;
@@ -174,15 +181,15 @@ class UserService extends BaseService<User, typeof prisma.user> {
       });
     }
 
-    await this.invalidateCache();
-    await cacheHelper.delete(this.STATS_KEY);
-
+    await this.invalidateAllUserCache();
     return result;
   }
 
   async updateViaAdmin(id: string, payload: UpdateUserDto) {
-    const { email, password } = payload;
-    const authUpdate = await authService.update(id, { email, password });
+    const authUpdate = await authService.update(id, {
+      email: payload.email,
+      password: payload.password,
+    });
 
     const result = await prisma.user.update({
       where: { id: authUpdate.id },
@@ -197,9 +204,7 @@ class UserService extends BaseService<User, typeof prisma.user> {
       },
     });
 
-    await this.invalidateCache(id);
-    await cacheHelper.delete(this.STATS_KEY);
-
+    await this.invalidateAllUserCache(id);
     return result;
   }
 
@@ -207,9 +212,7 @@ class UserService extends BaseService<User, typeof prisma.user> {
     await authService.delete(id);
     await prisma.user.delete({ where: { id } });
 
-    await this.invalidateCache(id);
-    await cacheHelper.delete(this.STATS_KEY);
-
+    await this.invalidateAllUserCache(id);
     return id;
   }
 }

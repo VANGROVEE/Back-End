@@ -5,7 +5,6 @@ import { cacheHelper } from "@/common/utils/cache";
 import type { LoginDto, RegisterAuhtDto, UpdateAuthDto } from "./auth.dto";
 
 export const authService = {
-
   login: async (payload: LoginDto) => {
     const { email, password } = payload;
 
@@ -42,8 +41,11 @@ export const authService = {
       where: { id: authData.user.id },
     });
 
-    await cacheHelper.deletePattern("users:all:*");
-    await cacheHelper.delete("users:stats");
+    await Promise.all([
+      cacheHelper.deletePattern("users:all:*"),
+      cacheHelper.deletePattern("cache:*users*"),
+      cacheHelper.delete("users:stats"),
+    ]);
 
     return { user: user || authData.user };
   },
@@ -83,12 +85,11 @@ export const authService = {
       },
     });
 
-    await cacheHelper.delete([
-      `user:detail:${currentId}`,
-      "users:all:*",
-      "users:stats",
+    await Promise.all([
+      cacheHelper.delete([`users:detail:${currentId}`, "users:stats"]),
+      cacheHelper.deletePattern("users:all:*"),
+      cacheHelper.deletePattern("cache:*users*"),
     ]);
-    await cacheHelper.deletePattern("users:all:*");
 
     return updatedUser;
   },
@@ -114,8 +115,11 @@ export const authService = {
     );
     if (authError) throw new ApiError(400, authError.message);
 
-    await cacheHelper.delete([`user:detail:${currentId}`, "users:stats"]);
-    await cacheHelper.deletePattern("users:all:*");
+    await Promise.all([
+      cacheHelper.delete([`users:detail:${currentId}`, "users:stats"]),
+      cacheHelper.deletePattern("users:all:*"),
+      cacheHelper.deletePattern("cache:*users*"),
+    ]);
 
     return targetUser.id;
   },

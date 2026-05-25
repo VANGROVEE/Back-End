@@ -1,6 +1,7 @@
 import { BaseService } from "@/common/base/service";
 import { prisma } from "@/common/config/prisma";
 import { ApiError } from "@/common/utils/api-error";
+import { cacheHelper } from "@/common/utils/cache";
 import {
   calculateDistance,
   getRadiusFromArea,
@@ -8,7 +9,6 @@ import {
 } from "@/common/utils/geo";
 import type { Land } from "@/generated/prisma/client";
 import type { CreateLandDto, UpdateLandDto } from "./land.dto";
-import { cacheHelper } from "@/common/utils/cache";
 
 class LandServices extends BaseService<Land, typeof prisma.land> {
   private readonly LAND_STATS_KEY = "lands:stats";
@@ -16,6 +16,10 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
 
   constructor() {
     super(prisma.land, "lands");
+  }
+
+  private async invalidateExtraCache() {
+    await cacheHelper.delete([this.LAND_STATS_KEY, this.LAND_GEO_DATA_KEY]);
   }
 
   async findDetail(landId: string) {
@@ -36,10 +40,7 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
         },
       });
 
-      if (!data) {
-        throw new ApiError(404, `Lahan dengan ID ${landId} tidak ditemukan.`);
-      }
-
+      if (!data) throw new ApiError(404, `Lahan tidak ditemukan.`);
       return data;
     });
   }
@@ -51,19 +52,20 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
       data: { ...data, owner_id: userId },
     });
 
-    await this.invalidateCache();
-    await cacheHelper.delete([this.LAND_STATS_KEY, this.LAND_GEO_DATA_KEY]);
+    await Promise.all([
+      this.invalidateCache({ userId }),
+      this.invalidateExtraCache(),
+    ]);
 
     return result;
   }
 
-  override async update(id: string, data: UpdateLandDto) {
+  async updateLand(id: string, data: UpdateLandDto) {
     const currentLand = await this.findById(id);
 
     if (data.location || data.total_area) {
       const newLocation = data.location || (currentLand.location as any);
       const newArea = data.total_area || currentLand.total_area;
-
       await this.validateOverlap(newLocation, newArea, id);
     }
 
@@ -72,8 +74,10 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
       data,
     });
 
-    await this.invalidateCache(id);
-    await cacheHelper.delete([this.LAND_STATS_KEY, this.LAND_GEO_DATA_KEY]);
+    await Promise.all([
+      this.invalidateCache({ id, userId: currentLand.owner_id }),
+      this.invalidateExtraCache(),
+    ]);
 
     return result;
   }
@@ -100,10 +104,10 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
           ]);
 
         return {
-          total_lands: landAggregations._count.id || 0,
-          new_lands_this_month: newLandsThisMonth || 0,
-          total_area: landAggregations._sum.total_area || 0,
-          active_cycles: activeCycles || 0,
+          total_lands: String(landAggregations._count.id || 0),
+          new_lands_this_month: String(newLandsThisMonth || 0),
+          total_area: String(landAggregations._sum.total_area || 0),
+          active_cycles: String(activeCycles || 0),
         };
       },
       3600,
@@ -111,23 +115,21 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
   }
 
   async softDelete(id: string) {
-    await this.findById(id);
+    const currentLand = await this.findById(id);
 
     const result = await prisma.land.update({
       where: { id },
       data: { is_active: false, deleted_at: new Date() },
     });
 
-    await this.invalidateCache(id);
-    await cacheHelper.delete([this.LAND_STATS_KEY, this.LAND_GEO_DATA_KEY]);
+    await Promise.all([
+      this.invalidateCache({ id, userId: currentLand.owner_id }),
+      this.invalidateExtraCache(),
+    ]);
 
     return result;
   }
 
-  /**
-   * Optimasi Validasi Overlap: Mengambil data koordinat semua lahan dari Redis
-   * jika tersedia.
-   */
   private async validateOverlap(
     location: { latitude: number; longitude: number },
     totalArea: number,
@@ -171,9 +173,7 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
   }
 
   async getLands() {
-    return cacheHelper.getOrSet(this.getListKey({ all: true }), async () => {
-      return await prisma.land.findMany({ include: { owner: true } });
-    });
+    return this.findAll({ include: { owner: true } });
   }
 }
 

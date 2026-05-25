@@ -16,6 +16,18 @@ class HealthService extends BaseService<
     super(prisma.healthReport, "health-reports");
   }
 
+  private async invalidateExtraCache(cycleId?: string) {
+    const promises: Promise<any>[] = [
+      cacheHelper.delete(this.HEALTH_STATS_KEY),
+    ];
+
+    if (cycleId) {
+      promises.push(cacheHelper.delete(`health:reports-cycle:${cycleId}`));
+    }
+
+    await Promise.all(promises);
+  }
+
   async createReportWithAI(dto: CreateHealthReportDto) {
     const cycle = await cacheHelper.getOrSet(
       `cycle:ai-check:${dto.cycle_id}`,
@@ -52,8 +64,10 @@ class HealthService extends BaseService<
       },
     });
 
-    await this.invalidateCache();
-    await cacheHelper.delete(this.HEALTH_STATS_KEY);
+    await Promise.all([
+      this.invalidateCache(),
+      this.invalidateExtraCache(dto.cycle_id),
+    ]);
 
     return report;
   }
@@ -80,9 +94,10 @@ class HealthService extends BaseService<
       where: { id },
     });
 
-    await this.invalidateCache(id);
-    await cacheHelper.deletePattern(`health:reports-cycle:${report.cycle_id}`);
-    await cacheHelper.delete(this.HEALTH_STATS_KEY);
+    await Promise.all([
+      this.invalidateCache({ id }),
+      this.invalidateExtraCache(report.cycle_id),
+    ]);
 
     return result;
   }

@@ -7,16 +7,16 @@ class HarvestReportService extends BaseService<
   HarvestReport,
   typeof prisma.harvestReport
 > {
-  private getUserDashboardKey(userId: string) {
-    return `harvest:dashboard:${userId}`;
-  }
-
   constructor() {
     super(prisma.harvestReport, "harvest-reports");
   }
 
+  private async invalidateExtraCache(userId: string) {
+    await cacheHelper.delete(this.createUserKey(userId, "dashboard"));
+  }
+
   async getDashboardData(userId: string) {
-    const cacheKey = this.getUserDashboardKey(userId);
+    const cacheKey = this.createUserKey(userId, "dashboard");
 
     return cacheHelper.getOrSet(
       cacheKey,
@@ -52,6 +52,7 @@ class HarvestReportService extends BaseService<
         const finishedCycles = allCycles.filter(
           (c) => c.status === "COMPLETED",
         ).length;
+
         const successRate =
           totalCycles > 0
             ? Math.round((finishedCycles / totalCycles) * 100)
@@ -65,9 +66,11 @@ class HarvestReportService extends BaseService<
           end_date: cycle.estimated_harvest,
           commodity: cycle.commodity,
           activity_count: cycle._count.daily_activities,
-          total_yield: cycle.harvest_reports.reduce(
-            (acc, curr) => acc + Number(curr.total_yield_kg),
-            0,
+          total_yield: String(
+            cycle.harvest_reports.reduce(
+              (acc, curr) => acc + Number(curr.total_yield_kg),
+              0,
+            ),
           ),
           ai_explanation:
             cycle.status === "FAILED"
@@ -78,9 +81,9 @@ class HarvestReportService extends BaseService<
 
         return {
           stats: {
-            total_yield_kg: totalYield,
-            harvest_count: reports.length,
-            success_rate: successRate,
+            total_yield_kg: String(totalYield),
+            harvest_count: String(reports.length),
+            success_rate: String(successRate),
           },
           history: reports,
           cycles: formattedCycles,
@@ -109,14 +112,26 @@ class HarvestReportService extends BaseService<
   async createReport(userId: string, data: any) {
     const result = await prisma.harvestReport.create({ data });
 
-    await this.invalidateCache();
-    await cacheHelper.delete(this.getUserDashboardKey(userId));
+    await Promise.all([
+      this.invalidateCache(),
+      this.invalidateExtraCache(userId),
+    ]);
 
     return result;
   }
 
-  async invalidateUserDashboard(userId: string) {
-    await cacheHelper.delete(this.getUserDashboardKey(userId));
+  async updateReport(id: string, userId: string, data: any) {
+    const result = await prisma.harvestReport.update({
+      where: { id },
+      data,
+    });
+
+    await Promise.all([
+      this.invalidateCache({ id }),
+      this.invalidateExtraCache(userId),
+    ]);
+
+    return result;
   }
 }
 

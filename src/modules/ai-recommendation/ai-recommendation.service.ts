@@ -32,9 +32,7 @@ export const aiRecommendationService = {
             },
           });
 
-        if (existingRecommendation) {
-          return existingRecommendation;
-        }
+        if (existingRecommendation) return existingRecommendation;
 
         const cycle = await prisma.plantingCycle.findUnique({
           where: { id: cycleId },
@@ -47,9 +45,13 @@ export const aiRecommendationService = {
           latitude?: number;
           longitude?: number;
         } | null;
+
         if (!location?.latitude || !location?.longitude) {
           throw new ApiError(400, "Koordinat lokasi lahan tidak valid.");
         }
+
+        const yesterdayDate = new Date(today);
+        yesterdayDate.setDate(today.getDate() - 1);
 
         const [
           recentActivities,
@@ -70,9 +72,7 @@ export const aiRecommendationService = {
           prisma.aiRecommendationLog.findFirst({
             where: {
               cycle_id: cycleId,
-              recommendation_date: new Date(
-                new Date(today).setDate(today.getDate() - 1),
-              ),
+              recommendation_date: yesterdayDate,
             },
           }),
           weatherUtils.getTomorrowForecast(
@@ -117,12 +117,13 @@ export const aiRecommendationService = {
               responseMimeType: "application/json",
             },
           });
+
           aiResponseJson = JSON.parse(result.response.text());
         } catch (error: any) {
           throw new ApiError(500, `AI Process Error: ${error?.message}`);
         }
 
-        return await prisma.aiRecommendationLog.create({
+        const savedLog = await prisma.aiRecommendationLog.create({
           data: {
             cycle_id: cycleId,
             recommendation_date: today,
@@ -130,6 +131,10 @@ export const aiRecommendationService = {
             context_used: context as any,
           },
         });
+
+        await cacheHelper.delete("analytics:ai-performance");
+
+        return savedLog;
       },
       43200,
     );

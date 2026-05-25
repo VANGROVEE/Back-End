@@ -80,26 +80,31 @@ class DailyActivityService extends BaseService<
     return result;
   }
 
-  /** Helper untuk membersihkan semua cache yang terdampak oleh aktivitas baru */
   private async invalidateRelatedCaches(cycleId: string) {
     const cycle = await prisma.plantingCycle.findUnique({
       where: { id: cycleId },
       include: { land: true },
     });
 
-    if (cycle) {
-      const keys = [
+    const promises: Promise<any>[] = [
+      this.invalidateCache(),
+      cacheHelper.deletePattern(`planting-cycles:all:*`),
+      cacheHelper.delete([
         `planting-cycles:detail:${cycleId}`,
         `planting-cycles:heatmap:all`,
         `planting-cycles:heatmap:${cycleId}`,
-        `harvest:dashboard:${cycle.land.owner_id}`,
         `health:reports-cycle:${cycleId}`,
-      ];
-      await cacheHelper.delete(keys);
-      await cacheHelper.deletePattern(`planting-cycles:all:*`);
+      ]),
+    ];
+
+    if (cycle) {
+      promises.push(this.invalidateCache({ userId: cycle.land.owner_id }));
+      promises.push(
+        cacheHelper.delete(`harvest:dashboard:${cycle.land.owner_id}`),
+      );
     }
 
-    await this.invalidateCache();
+    await Promise.all(promises);
   }
 
   private async handleSaveAiReport(
@@ -182,6 +187,7 @@ class DailyActivityService extends BaseService<
           radiusInfected +
           getRadiusFromArea(other.total_area) +
           OUTBREAK_DANGER_RADIUS;
+
         if (distance <= totalDangerZone) affectedFarmerIds.add(other.owner_id);
       }
     });
@@ -198,10 +204,7 @@ class DailyActivityService extends BaseService<
       });
 
       for (const id of farmerIds) {
-        await cacheHelper.delete([
-          `notifications:list:${id}`,
-          `notifications:unread_count:${id}`,
-        ]);
+        await this.invalidateCache({ userId: id });
       }
     }
   }

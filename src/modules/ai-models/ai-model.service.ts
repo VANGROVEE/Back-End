@@ -30,7 +30,7 @@ class AiModelService extends BaseService<
   typeof prisma.healthReport
 > {
   constructor() {
-    super(prisma.healthReport, "ai-analysis");
+    super(prisma.healthReport, "health-reports");
   }
 
   async predictOnly(imageUrl: string): Promise<AIAnalysisResult> {
@@ -54,7 +54,7 @@ class AiModelService extends BaseService<
       include: { land: true },
     });
 
-    if (!cycleExists) throw new ApiError(404, `Siklus tanam tidak ditemukan.`);
+    if (!cycleExists) throw new ApiError(404, "Siklus tanam tidak ditemukan.");
 
     const { ai_raw_result } = payload;
 
@@ -103,8 +103,11 @@ class AiModelService extends BaseService<
       );
     }
 
-    await this.invalidateCache();
-    await cacheHelper.delete(`health:reports-cycle:${payload.cycle_id}`);
+    await Promise.all([
+      this.invalidateCache(),
+      cacheHelper.delete(`health:reports-cycle:${payload.cycle_id}`),
+      cacheHelper.delete("health:stats"),
+    ]);
 
     return newReport;
   }
@@ -149,12 +152,14 @@ class AiModelService extends BaseService<
           radiusInfected +
           getRadiusFromArea(other.total_area) +
           OUTBREAK_DANGER_RADIUS;
+
         if (distance <= totalDangerZone) affectedFarmerIds.add(other.owner_id);
       }
     });
 
     if (affectedFarmerIds.size > 0) {
       const farmerIds = Array.from(affectedFarmerIds);
+
       await prisma.notification.createMany({
         data: farmerIds.map((userId) => ({
           user_id: userId,
@@ -164,12 +169,11 @@ class AiModelService extends BaseService<
         })),
       });
 
-      for (const id of farmerIds) {
-        await cacheHelper.delete([
-          `notifications:list:${id}`,
-          `notifications:unread_count:${id}`,
-        ]);
-      }
+      const clearNotificationPromises = farmerIds.map((id) =>
+        this.invalidateCache({ userId: id }),
+      );
+
+      await Promise.all(clearNotificationPromises);
     }
   }
 
@@ -180,6 +184,7 @@ class AiModelService extends BaseService<
         { image_url: imageUrl },
         { timeout: 15000 },
       );
+
       const rawData = response.data;
       if (!rawData) throw new ApiError(502, "Model ML tidak merespon.");
 

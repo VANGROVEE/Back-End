@@ -7,27 +7,12 @@ class NotificationService extends BaseService<
   Notification,
   typeof prisma.notification
 > {
-  private getNotificationKeys(userId: string) {
-    return {
-      list: `notifications:list:${userId}`,
-      unread: `notifications:unread_count:${userId}`,
-    };
-  }
-
   constructor() {
     super(prisma.notification, "notifications");
   }
 
-  /** Helper internal untuk membersihkan cache khusus milik satu user */
-  private async invalidateUserCache(userId: string) {
-    const keys = this.getNotificationKeys(userId);
-    await cacheHelper.delete([keys.list, keys.unread]);
-
-    await this.invalidateCache();
-  }
-
   async getByUserId(userId: string) {
-    const cacheKey = this.getNotificationKeys(userId).list;
+    const cacheKey = this.createUserKey(userId, "list");
 
     return cacheHelper.getOrSet(
       cacheKey,
@@ -42,7 +27,7 @@ class NotificationService extends BaseService<
   }
 
   async getUnreadCount(userId: string) {
-    const cacheKey = this.getNotificationKeys(userId).unread;
+    const cacheKey = this.createUserKey(userId, "unread_count");
 
     return cacheHelper.getOrSet(
       cacheKey,
@@ -67,7 +52,7 @@ class NotificationService extends BaseService<
       data: { is_read: true },
     });
 
-    await this.invalidateUserCache(userId);
+    await this.invalidateCache({ id: notificationId, userId });
     return result;
   }
 
@@ -80,7 +65,7 @@ class NotificationService extends BaseService<
       data: { is_read: true },
     });
 
-    await this.invalidateUserCache(userId);
+    await this.invalidateCache({ userId });
     return result;
   }
 
@@ -92,7 +77,7 @@ class NotificationService extends BaseService<
       },
     });
 
-    await this.invalidateUserCache(userId);
+    await this.invalidateCache({ id: notificationId, userId });
     return result;
   }
 
@@ -103,7 +88,7 @@ class NotificationService extends BaseService<
       },
     });
 
-    await this.invalidateUserCache(userId);
+    await this.invalidateCache({ userId });
     return result;
   }
 }

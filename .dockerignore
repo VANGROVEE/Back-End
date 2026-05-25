@@ -1,0 +1,51 @@
+# Dependency directories (Jangan di-copy, biar Docker install sendiri)
+node_modules/
+bun.lockb
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+bun-debug.log*
+
+# Environment variables (Sangat Penting! Jangan sampai bocor ke Image)
+.env
+.env.local
+.env.production
+.env.development
+
+# Editor folders and files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Build and Dist folders
+dist/
+build/
+out/
+
+# Prisma artifacts 
+# Kita biarkan schema.prisma ikut, tapi jangan migrasi lokal/db sqlite jika ada
+/prisma/migrations/
+/prisma/*.db
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
+README.md
+docs/

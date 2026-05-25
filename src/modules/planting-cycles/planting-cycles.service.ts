@@ -18,21 +18,23 @@ class PlantingCycleService extends BaseService<
     super(prisma.plantingCycle, "planting-cycles");
   }
 
+  private async invalidateExtraCache() {
+    await cacheHelper.deletePattern(`${this.HEATMAP_CACHE_KEY}:*`);
+  }
+
   async createCycle(data: CreatePlantingCycleDto) {
     const activeCycle = await prisma.plantingCycle.findFirst({
       where: {
         land_id: data.land_id,
         commodity_id: data.commodity_id,
-        status: {
-          in: ["PLANTING", "HARVESTED"],
-        },
+        status: { in: ["PLANTING", "HARVESTED"] },
       },
     });
 
     if (activeCycle) {
       throw new ApiError(
         400,
-        "Lahan masih digunakan. Selesaikan atau tandai gagal panen pada siklus sebelumnya.",
+        "Lahan masih digunakan. Selesaikan siklus sebelumnya terlebih dahulu.",
       );
     }
 
@@ -41,9 +43,7 @@ class PlantingCycleService extends BaseService<
       select: { id: true },
     });
 
-    if (!landExists) {
-      throw new ApiError(404, "Lahan tidak ditemukan.");
-    }
+    if (!landExists) throw new ApiError(404, "Lahan tidak ditemukan.");
 
     const result = await prisma.plantingCycle.create({
       data: {
@@ -57,47 +57,34 @@ class PlantingCycleService extends BaseService<
       },
     });
 
-    await this.invalidateCache();
-    await cacheHelper.deletePattern(`${this.HEATMAP_CACHE_KEY}:*`);
+    await Promise.all([this.invalidateCache(), this.invalidateExtraCache()]);
 
     return result;
   }
 
   async updateCycle(id: string, data: UpdatePlantingCycleDto) {
-    const cycleExists = await prisma.plantingCycle.findUnique({
-      where: { id },
-    });
-
-    if (!cycleExists) {
-      throw new ApiError(404, "Siklus tanam tidak ditemukan.");
-    }
+    const cycleExists = await this.findById(id);
 
     if (data.land_id && data.land_id !== cycleExists.land_id) {
       const landExists = await prisma.land.findUnique({
         where: { id: data.land_id },
         select: { id: true },
       });
-
-      if (!landExists) {
-        throw new ApiError(404, "Lahan tujuan tidak ditemukan.");
-      }
+      if (!landExists) throw new ApiError(404, "Lahan tujuan tidak ditemukan.");
     }
 
     const result = await prisma.plantingCycle.update({
       where: { id },
       data: {
-        land_id: data.land_id,
-        commodity_id: data.commodity_id,
-        variety: data.variety,
-        planting_method: data.planting_method,
-        start_date: data.start_date,
-        estimated_harvest: data.estimated_harvest,
+        ...data,
         status: data.status as STATUS,
       },
     });
 
-    await this.invalidateCache(id);
-    await cacheHelper.deletePattern(`${this.HEATMAP_CACHE_KEY}:*`);
+    await Promise.all([
+      this.invalidateCache({ id }),
+      this.invalidateExtraCache(),
+    ]);
 
     return result;
   }
@@ -117,13 +104,9 @@ class PlantingCycleService extends BaseService<
           },
           where: {
             ...(cycleId ? { cycle_id: cycleId } : {}),
-            activity_date: {
-              not: undefined,
-            },
+            activity_date: { not: undefined },
           },
-          orderBy: {
-            activity_date: "asc",
-          },
+          orderBy: { activity_date: "asc" },
         });
 
         const heatmapData: Record<
@@ -145,28 +128,24 @@ class PlantingCycleService extends BaseService<
             (heatmapData[dateStr].types[type] || 0) + 1;
         });
 
-        const formattedResult = Object.entries(heatmapData).map(
-          ([date, data]) => {
-            let dominantType = "OTHER";
-            let maxCount = 0;
+        return Object.entries(heatmapData).map(([date, data]) => {
+          let dominantType = "OTHER";
+          let maxCount = 0;
 
-            for (const [type, count] of Object.entries(data.types)) {
-              if (count > maxCount) {
-                maxCount = count;
-                dominantType = type;
-              }
+          for (const [type, count] of Object.entries(data.types)) {
+            if (count > maxCount) {
+              maxCount = count;
+              dominantType = type;
             }
+          }
 
-            return {
-              date,
-              count: data.count,
-              details: data.types,
-              dominant_type: dominantType,
-            };
-          },
-        );
-
-        return formattedResult;
+          return {
+            date,
+            count: data.count,
+            details: data.types,
+            dominant_type: dominantType,
+          };
+        });
       },
       1800,
     );

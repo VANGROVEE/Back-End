@@ -49,7 +49,7 @@ export const analyticsService = {
         }
 
         return {
-          value: totalFarmers.toLocaleString(),
+          value: String(totalFarmers.toLocaleString()),
           label: "PENGGUNA AKTIF",
           increase: increase,
         };
@@ -75,7 +75,7 @@ export const analyticsService = {
         const status = requestsThisMonth > 0 ? "99.9% Online" : "System Idle";
 
         return {
-          value: totalRequests.toLocaleString(),
+          value: String(totalRequests.toLocaleString()),
           label: "TOTAL REKOMENDASI AI",
           status: status,
         };
