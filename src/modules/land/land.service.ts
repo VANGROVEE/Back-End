@@ -29,15 +29,16 @@ class LandSerivces extends BaseService<Land, typeof prisma.land> {
     const data = await prisma.land.findUnique({
       where: {
         id: landId,
+        is_active: true,
       },
       include: {
         owner: true,
-
         planting_cycles: {
           orderBy: {
             start_date: "desc",
           },
           include: {
+            commodity: true,
             daily_activities: {
               orderBy: {
                 activity_date: "desc",
@@ -109,6 +110,21 @@ class LandSerivces extends BaseService<Land, typeof prisma.land> {
       total_area: landAggregations._sum.total_area || 0,
       active_cycles: activeCycles || 0,
     };
+  }
+
+  async softDelete(id: string) {
+    const currentLand = await prisma.land.findUnique({
+      where: { id },
+    });
+
+    if (!currentLand) {
+      throw new ApiError(404, "Lahan tidak ditemukan.");
+    }
+
+    return await prisma.land.update({
+      where: { id },
+      data: { is_active: false, deleted_at: new Date() },
+    });
   }
 
   private async validateOverlap(

@@ -13,6 +13,7 @@ enum ROLE {
 }
 
 enum STATUS {
+  PLANTING
   HARVESTED
   COMPLETED
   FAILED
@@ -36,7 +37,7 @@ enum CommodityCategory {
   HORTIKULTURA_BUAH
   PERKEBUNAN
   HERBAL
-}
+} 
 
 model User {
   
@@ -71,6 +72,8 @@ model Land {
   total_area           Float    @db.Real
   location             Json?
   land_certificate_url String?  @db.VarChar
+  is_active   Boolean   @default(true)  // Flag sederhana
+  deleted_at  DateTime?
   created_at           DateTime @default(now()) @db.Timestamp
 
   owner           User            @relation(fields: [owner_id], references: [id])
@@ -98,7 +101,7 @@ model PlantingCycle {
   planting_method   String?   @db.VarChar
   start_date        DateTime  @db.Date
   estimated_harvest DateTime? @db.Date
-  status            STATUS
+  status    STATUS   @default(PLANTING)
 
   land                 Land                  @relation(fields: [land_id], references: [id])
   daily_activities     DailyActivity[]

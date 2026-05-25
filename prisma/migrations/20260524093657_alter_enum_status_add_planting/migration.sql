@@ -1,0 +1,5 @@
+-- AlterEnum
+ALTER TYPE "STATUS" ADD VALUE 'PLANTING';
+
+-- AlterTable
+ALTER TABLE "planting_cycles" ALTER COLUMN "status" SET DEFAULT 'PLANTING';

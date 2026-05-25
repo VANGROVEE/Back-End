@@ -22,26 +22,6 @@ class HealthService extends BaseService<
       await utapi.deleteFiles(dto.image_key);
       throw new Error("Komoditas ini belum mendukung fitur analisis AI.");
     }
-
-    // try {
-    //   const aiResult = await analyzeImage(dto.image_url);
-
-    //   if (!aiResult.isValidPlant) {
-    //     await utapi.deleteFiles(dto.image_key);
-    //     throw new Error("Gambar tidak valid. Mohon unggah foto tanaman.");
-    //   }
-
-    //   return await this.create({
-    //     ...dto,
-    //     disease_id: aiResult.disease_id,
-    //     confidence_score: aiResult.confidence_score,
-    //     gemini_insight: aiResult.insight,
-    //     is_outbreak_trigger: aiResult.is_dangerous,
-    //   });
-    // } catch (error) {
-    //   await utapi.deleteFiles(dto.image_key);
-    //   throw error;
-    // }
   }
 }
 

@@ -11,7 +11,7 @@ export const authService = {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
-    }); 
+    });
 
     if (error) throw new ApiError(401, "Email atau password salah");
 
@@ -47,7 +47,7 @@ export const authService = {
     const { email, name, password } = payload;
 
     const existingUser = await prisma.user.findUnique({
-      where: { id :currentId},
+      where: { id: currentId },
     });
 
     if (!existingUser)
