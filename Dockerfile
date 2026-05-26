@@ -29,6 +29,7 @@ COPY --from=install /app/package.json ./package.json
 # Copy source code dan entry point
 COPY src ./src
 COPY index.ts ./
+COPY --from=install /app/src/generated ./src/generated
 
 # 🌟 SANGAT WAJIB: Copy tsconfig agar Bun bisa membaca path alias @/
 COPY tsconfig.json ./
