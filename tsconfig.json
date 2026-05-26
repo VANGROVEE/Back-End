@@ -17,6 +17,7 @@
       "@middlewares/*": ["./src/common/middlewares/*"]
     },
     "rootDir": ".",
+    "baseUrl": ".",
     // Bundler mode
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
