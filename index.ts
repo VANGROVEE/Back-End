@@ -15,22 +15,24 @@ async function bootstrap() {
     await connectRedis();
 
     const server = app.listen(PORT, HOST, () => {
-      const displayHost =
-        HOST === "0.0.0.0" || HOST === "localhost" ? "localhost" : HOST;
-      const url = `http://${displayHost}:${PORT}/api/v1`;
-
       if (NODE_ENV === "development") {
+        const displayHost = HOST === "0.0.0.0" ? "localhost" : HOST;
+        const url = `http://${displayHost}:${PORT}/api/v1`;
+
         console.clear();
         console.log(`
-${chalk.bold.green("   🚀 VANGROVE BACKEND DEPLOYED")}
-${chalk.gray("   ---------------------------------------------")}
-   ${chalk.blue("➜")}   ${chalk.bold("Local:")}    ${chalk.cyan(url)}
-   ${chalk.blue("➜")}   ${chalk.bold("Docs:")}     ${chalk.cyan(`${url}/docs`)}
-   ${chalk.blue("➜")}   ${chalk.bold("Mode:")}     ${chalk.yellow(NODE_ENV)}
-${chalk.gray("   ---------------------------------------------")}
+        ${chalk.bold.green("   🚀 VANGROVE BACKEND DEPLOYED")}
+        ${chalk.gray("   ---------------------------------------------")}
+          ${chalk.blue("➜")}   ${chalk.bold("Local:")}    ${chalk.cyan(url)}
+          ${chalk.blue("➜")}   ${chalk.bold("Docs:")}     ${chalk.cyan(`${url}/docs`)}
+          ${chalk.blue("➜")}   ${chalk.bold("Mode:")}     ${chalk.yellow(NODE_ENV)}
+        ${chalk.gray("   ---------------------------------------------")}
         `);
       } else {
-        logger.info(`Server started on ${url} [${NODE_ENV}]`);
+        // Di production (Railway), biarkan log mencetak HOST yang sebenarnya (0.0.0.0)
+        logger.info(
+          `Server started on http://${HOST}:${PORT}/api/v1 [${NODE_ENV}]`,
+        );
       }
     });
 
