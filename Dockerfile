@@ -29,6 +29,10 @@ COPY --from=install /app/package.json ./package.json
 # Copy source code dan entry point
 COPY src ./src
 COPY index.ts ./
+
+# 🌟 SANGAT WAJIB: Copy tsconfig agar Bun bisa membaca path alias @/
+COPY tsconfig.json ./
+
 # Copy folder prisma (opsional, tapi disarankan jika kamu butuh run migration di production)
 COPY prisma ./prisma 
 
