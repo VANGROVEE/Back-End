@@ -39,6 +39,10 @@ enum CommodityCategory {
   HERBAL
 } 
 
+enum RecommendationType {
+  DAILY
+  FAILURE_ANALYSIS
+}
 model User {
   
   
@@ -135,7 +139,7 @@ model DailyActivity {
 model AiRecommendationLog {
   id       String @id @default(uuid()) @db.Uuid
   cycle_id String @db.Uuid
-
+  type     RecommendationType @default(DAILY)
   recommendation_date DateTime @db.Date
 
   ai_response Json
@@ -146,7 +150,7 @@ model AiRecommendationLog {
 
   cycle PlantingCycle @relation(fields: [cycle_id], references: [id], onDelete: Cascade)
 
-  @@unique([cycle_id, recommendation_date])
+  @@unique([cycle_id, recommendation_date, type])
   @@map("ai_recommendation_logs")
 }
 
