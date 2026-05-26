@@ -11,9 +11,15 @@ import { setupSwagger } from "./swagger";
 import { globalLimiter } from "../middlewares/rate-limiter";
 
 export const app: Express = express();
-// app.use(globalLimiter);
 app.use(helmet());
-app.use(cors());
+app.use(
+  cors({
+    origin: ["https://vangrove.vercel.app", "http://localhost:3000"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 app.use(httpLogger);
 
 app.use(express.json());
@@ -25,4 +31,3 @@ app.use("/api/v1", router);
 
 app.use(notFoundHandler);
 app.use(globalErrorHandler);
-
