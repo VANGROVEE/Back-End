@@ -179,8 +179,9 @@ class AiModelService extends BaseService<
 
   private async hitMlServer(imageUrl: string): Promise<AIAnalysisResult> {
     try {
+      
       const response = await axios.post(
-        AI_ENDPOINT,
+        AI_ENDPOINT + "/predict",
         { image_url: imageUrl },
         { timeout: 15000 },
       );

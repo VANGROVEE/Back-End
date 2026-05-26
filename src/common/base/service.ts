@@ -2,11 +2,11 @@ import { ApiError } from "@/common/utils/api-error";
 import { cacheHelper } from "../utils/cache";
 
 export type PrismaDelegate = {
-  findMany: (args?: any) => Promise<unknown>;
-  findUnique: (args: any) => Promise<unknown>;
-  create: (args: any) => Promise<unknown>;
-  update: (args: any) => Promise<unknown>;
-  delete: (args: any) => Promise<unknown>;
+  findMany: (args?: never) => Promise<unknown>;
+  findUnique: (args: never) => Promise<unknown>;
+  create: (args: never) => Promise<unknown>;
+  update: (args: never) => Promise<unknown>;
+  delete: (args: never) => Promise<unknown>;
 };
 
 export abstract class BaseService<T, D extends PrismaDelegate> {
@@ -19,8 +19,20 @@ export abstract class BaseService<T, D extends PrismaDelegate> {
     this.cachePrefix = cachePrefix;
   }
 
-  protected getListKey(args?: any) {
-    return `${this.cachePrefix}:all:${JSON.stringify(args || {})}`;
+  protected getListKey(args?: Parameters<D["findMany"]>[0]) {
+    if (!args || Object.keys(args).length === 0) {
+      return `${this.cachePrefix}:all:default`;
+    }
+
+    const cleanArgs = JSON.parse(JSON.stringify(args));
+
+    const queryString = JSON.stringify(cleanArgs);
+
+    const hash = Bun.hash(queryString).toString();
+
+    const finalKey = `${this.cachePrefix}:all:${hash}`;
+
+    return finalKey;
   }
 
   protected getDetailKey(id: string) {
@@ -32,10 +44,7 @@ export abstract class BaseService<T, D extends PrismaDelegate> {
   }
 
   protected async invalidateCache(options?: { id?: string; userId?: string }) {
-    const patterns = [
-      `${this.cachePrefix}:all:*`,
-      `cache:*${this.cachePrefix}*`,
-    ];
+    const patterns = [`${this.cachePrefix}:*`, `cache:*${this.cachePrefix}*`];
 
     const promises: Promise<any>[] = patterns.map((p) =>
       cacheHelper.deletePattern(p),
@@ -59,12 +68,19 @@ export abstract class BaseService<T, D extends PrismaDelegate> {
   }
 
   async findAll(args?: Parameters<D["findMany"]>[0]): Promise<T[]> {
-    return cacheHelper.getOrSet(this.getListKey(args), async () => {
-      return (await this.model.findMany(args as never)) as T[];
+    const cacheKey = this.getListKey(args);
+    console.log(`[REDIS DEBUG] Prefix: ${this.cachePrefix} | Key: ${cacheKey}`);
+    return cacheHelper.getOrSet(cacheKey, async () => {
+      const result = await this.model.findMany(args);
+      return result as T[];
     });
   }
 
-  async findById(id: string, args?: any, bypassCache = false): Promise<T> {
+  async findById(
+    id: string,
+    args?: Omit<Parameters<D["findUnique"]>[0], "where">,
+    bypassCache = false,
+  ): Promise<T> {
     if (bypassCache) {
       const data = (await this.model.findUnique({
         where: { id },
@@ -86,7 +102,7 @@ export abstract class BaseService<T, D extends PrismaDelegate> {
 
   async create(
     payload: Parameters<D["create"]>[0]["data"],
-    args?: any,
+    args?: Omit<Parameters<D["create"]>[0], "data">,
     userId?: string,
   ): Promise<T> {
     const result = (await this.model.create({
@@ -100,11 +116,11 @@ export abstract class BaseService<T, D extends PrismaDelegate> {
 
   async update(
     id: string,
-    payload: any,
-    args?: any,
+    payload: Parameters<D["update"]>[0]["data"],
+    args?: Omit<Parameters<D["update"]>[0], "where" | "data">,
     userId?: string,
   ): Promise<T> {
-    await this.findById(id, {}, true);
+    await this.findById(id, {} as any, true);
 
     const result = (await this.model.update({
       where: { id },
@@ -116,8 +132,12 @@ export abstract class BaseService<T, D extends PrismaDelegate> {
     return result;
   }
 
-  async delete(id: string, args?: any, userId?: string): Promise<T> {
-    await this.findById(id, {}, true);
+  async delete(
+    id: string,
+    args?: Omit<Parameters<D["delete"]>[0], "where">,
+    userId?: string,
+  ): Promise<T> {
+    await this.findById(id, {} as any, true);
 
     const result = (await this.model.delete({
       where: { id },

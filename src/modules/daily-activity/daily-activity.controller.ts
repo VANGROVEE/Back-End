@@ -14,11 +14,15 @@ export const dailyActivityController = {
   }),
 
   findAll: catchAsync(async (req: Request, res: Response) => {
+    const { cycle_id } = req.query as { cycle_id: string };
     const result = await dailyActivityService.findAll({
+      where: {
+        ...(cycle_id ? { cycle_id: String(cycle_id) } : {}),
+      },
       include: {
         cycle: {
           select: {
-            commodity: { select: { name: true } },
+            commodity: true,
             status: true,
           },
         },

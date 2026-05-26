@@ -27,36 +27,33 @@ class DailyActivityService extends BaseService<
     });
 
     const promises: Promise<any>[] = [
-      this.invalidateCache(),
-      // Hapus pattern dengan wildcard yang lebih luas untuk menangkap autoCache
-      cacheHelper.deletePattern(`planting-cycles:*`),
+      this.invalidateCache({ id: cycleId }),
+
       cacheHelper.deletePattern(`daily-activities:*`),
-      cacheHelper.deletePattern(`cache:*planting-cycles*`),
       cacheHelper.deletePattern(`cache:*daily-activities*`),
-      cacheHelper.deletePattern(`cache:*heatmap*`),
-      cacheHelper.deletePattern(`cache:*health-report*`),
+
+      cacheHelper.deletePattern(`health-reports:*`),
       cacheHelper.delete(`health:reports-cycle:${cycleId}`),
-      cacheHelper.delete("analytics:ai-performance"),
-      cacheHelper.delete("lands:stats"),
+      cacheHelper.deletePattern(`cache:*health*`),
+
+      cacheHelper.deletePattern(`harvest-reports:*`),
+      cacheHelper.deletePattern(`cache:*harvest*`),
+      cacheHelper.delete(`harvest:dashboard:${cycle?.land?.owner_id}`),
+
+      cacheHelper.delete(`planting-cycles:detail:${cycleId}`),
+      cacheHelper.deletePattern(`planting-cycles:*`),
+      cacheHelper.deletePattern(`cache:*planting-cycles*`),
+      cacheHelper.deletePattern(`cache:*heatmap*`),
     ];
 
     if (cycle) {
-      // Invalidate modul Lahan secara menyeluruh
       promises.push(
         landService.purgeLandCache(cycle.land_id, cycle.land.owner_id),
-      );
-
-      // Invalidate cache harvest berdasarkan owner
-      promises.push(
-        cacheHelper.delete(`harvest:dashboard:${cycle.land.owner_id}`),
-      );
-
-      // Bersihkan cache spesifik relasi yang sering terselip
-      promises.push(
         cacheHelper.deletePattern(`cache:*${cycle.land.owner_id}*`),
+        cacheHelper.deletePattern(`cache:*${cycle.land_id}*`),
+
+        cacheHelper.deletePattern(`*${cycleId}*`),
       );
-      promises.push(cacheHelper.deletePattern(`cache:*${cycle.land_id}*`));
-      promises.push(cacheHelper.deletePattern(`cache:*${cycleId}*`));
     }
 
     await Promise.all(promises);
@@ -118,7 +115,6 @@ class DailyActivityService extends BaseService<
       return newActivity;
     });
 
-    // Invalidate setelah transaksi sukses
     await this.invalidateRelatedCaches(data.cycle_id);
 
     return result;

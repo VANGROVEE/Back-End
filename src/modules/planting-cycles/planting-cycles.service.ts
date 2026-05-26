@@ -33,6 +33,7 @@ class PlantingCycleService extends BaseService<
       where: {
         land_id: data.land_id,
         status: { in: ["PLANTING", "HARVESTED"] },
+        start_date: data.start_date,
       },
     });
 
@@ -70,7 +71,22 @@ class PlantingCycleService extends BaseService<
       cacheHelper.deletePattern(`planting-cycles:*`),
       cacheHelper.deletePattern(`cache:*planting-cycle*`),
       cacheHelper.deletePattern(`cache:*heatmap*`),
+      cacheHelper.deletePattern(`cache:*analytics*`),
+      cacheHelper.deletePattern(`cache:*dashboard*`),
     ];
+
+    if (userId) {
+      promises.push(
+        cacheHelper.delete(this.createUserKey(userId, "dashboard")),
+      );
+
+      promises.push(cacheHelper.deletePattern(`*${userId}:dashboard*`));
+    }
+
+    if (cycleId) {
+      promises.push(cacheHelper.delete(`${this.HEATMAP_PREFIX}:${cycleId}`));
+      promises.push(cacheHelper.deletePattern(`*${cycleId}*`));
+    }
 
     if (landId) {
       promises.push(landService.purgeLandCache(landId, userId));
@@ -117,29 +133,65 @@ class PlantingCycleService extends BaseService<
             activity_date: { not: undefined },
           },
           orderBy: { activity_date: "asc" },
+
+          select: {
+            activity_date: true,
+            activity_type: true,
+          },
         });
 
-        const heatmapData: Record<string, { date: string; count: number }> = {};
+        const tempMap: Record<
+          string,
+          {
+            date: string;
+            count: number;
+            types: Record<string, number>;
+          }
+        > = {};
 
         activities.forEach((act) => {
-          if (!act.activity_date) return;
+          if (!act || !act.activity_date) return;
 
-          const dateParts = act.activity_date.toISOString().split("T");
-          const dateStr = dateParts[0];
+          const dateObj = new Date(act.activity_date);
+          if (isNaN(dateObj.getTime())) return;
 
-          if (typeof dateStr === "string") {
-            if (!heatmapData[dateStr]) {
-              heatmapData[dateStr] = { date: dateStr, count: 0 };
-            }
+          const parts = dateObj.toISOString().split("T");
+          const dateStr = parts[0];
 
-            const currentEntry = heatmapData[dateStr];
-            if (currentEntry) {
-              currentEntry.count += 1;
+          if (!dateStr || typeof dateStr !== "string") return;
+
+          if (!tempMap[dateStr]) {
+            tempMap[dateStr] = {
+              date: dateStr,
+              count: 0,
+              types: {},
+            };
+          }
+
+          const entry = tempMap[dateStr];
+
+          if (entry) {
+            entry.count += 1;
+
+            const type = act.activity_type;
+
+            if (type) {
+              entry.types[type] = (entry.types[type] || 0) + 1;
             }
           }
         });
 
-        return Object.values(heatmapData);
+        return Object.values(tempMap).map((item) => {
+          const dominantType = Object.entries(item.types).reduce((a, b) =>
+            b[1] > a[1] ? b : a,
+          )[0];
+
+          return {
+            date: item.date,
+            count: item.count,
+            dominant_type: dominantType,
+          };
+        });
       },
       1800,
     );

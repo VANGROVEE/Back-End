@@ -7,6 +7,7 @@ import { dailyActivityController } from "./daily-activity.controller";
 import "./daily-activity.docs";
 import {
   createDailyActivitySchema,
+  getDailyActivitiesQuerySchema,
   updateDailyActivitySchema,
 } from "./daily-activity.dto";
 
@@ -14,6 +15,7 @@ export default (router: Router, prefix: string) => {
   router.get(
     prefix,
     authenticate,
+    validate(getDailyActivitiesQuerySchema),
     autoCache(600, true),
     dailyActivityController.findAll,
   );
