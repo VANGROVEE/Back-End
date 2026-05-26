@@ -105,7 +105,9 @@ export const aiRecommendationService = {
           cuaca_besok: weatherForecast || "Gunakan asumsi normal.",
         };
 
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({
+          model: "gemini-3.5-flash",
+        });
 
         let aiResponseJson;
         try {
@@ -166,5 +168,89 @@ export const aiRecommendationService = {
         "pesan_petani": "String (Peringatan penyakit jika ada, atau motivasi harian)"
       }
     `;
+  },
+
+  async analyzeCropFailure(cycleId: string) {
+    // 1. Ambil data komprehensif (Semua variabel penyebab gagal)
+    const cycle = await prisma.plantingCycle.findUnique({
+      where: { id: cycleId },
+      include: {
+        land: true,
+        commodity: true,
+        daily_activities: {
+          orderBy: { activity_date: "asc" },
+        },
+        health_reports: {
+          include: { disease: true },
+        },
+        harvest_reports: true,
+      },
+    });
+
+    if (!cycle) throw new ApiError(404, "Siklus tidak ditemukan");
+
+    // 2. Persiapkan Variabel Mentah untuk AI
+    const analysisContext = {
+      komoditas: cycle.commodity.name,
+      durasi_tanam_hari: Math.floor(
+        (new Date().getTime() - cycle.start_date.getTime()) /
+          (1000 * 3600 * 24),
+      ),
+      total_aktivitas: cycle.daily_activities.length,
+      frekuensi_penyiraman: cycle.daily_activities.filter(
+        (a) => a.activity_type === "WATERING",
+      ).length,
+      frekuensi_pemupukan: cycle.daily_activities.filter(
+        (a) => a.activity_type === "FERTILIZING",
+      ).length,
+      riwayat_penyakit: cycle.health_reports.map((h) => ({
+        tgl: h.created_at,
+        penyakit: h.disease?.name,
+        skor_keyakinan: h.confidence_score,
+        is_outbreak: h.is_outbreak_trigger,
+      })),
+      catatan_aktivitas: cycle.daily_activities
+        .map((a) => a.notes)
+        .filter((n) => n),
+      lokasi: cycle.land.location,
+    };
+
+    // 3. Panggil Model Gemini (Gunakan nama model yang BENAR)
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash", // ✅ Diperbaiki dari 3.5 ke 1.5
+    });
+
+    const prompt = `
+    Kamu adalah Investigator Forensik Pertanian Digital.
+    Tugas: Menganalisis penyebab KEGAGALAN panen berdasarkan data berikut:
+    ${JSON.stringify(analysisContext)}
+
+    Tujuan:
+    1. Identifikasi faktor utama kegagalan (Kurang air? Serangan hama yang terlambat ditangani? Nutrisi?).
+    2. Berikan "Pelajaran Penting" agar petani tidak mengulangi kesalahan yang sama.
+    3. Analisis apakah ada korelasi antara intensitas penyiraman dan penyakit yang muncul.
+
+    Balas dengan format JSON:
+    {
+      "analisis_kegagalan": "String (Paragraf penjelasan teknis penyebab gagal)",
+      "faktor_dominan": "AIR | PENYAKIT | PEMUPUKAN | CUACA | EKSTERNAL",
+      "skor_kelalaian_manusia": Number (0-100),
+      "rekomendasi_perbaikan_masa_depan": ["Array string langkah konkret"]
+    }
+  `;
+
+    try {
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.2,
+          responseMimeType: "application/json",
+        },
+      });
+
+      return JSON.parse(result.response.text());
+    } catch (error: any) {
+      throw new ApiError(500, `Analisis AI Gagal: ${error.message}`);
+    }
   },
 };

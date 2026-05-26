@@ -106,7 +106,7 @@ class AiModelService extends BaseService<
     await Promise.all([
       this.invalidateCache(),
       cacheHelper.delete(`health:reports-cycle:${payload.cycle_id}`),
-      cacheHelper.delete("health:stats"),
+      cacheHelper.delete("health:stats")
     ]);
 
     return newReport;
@@ -152,14 +152,14 @@ class AiModelService extends BaseService<
           radiusInfected +
           getRadiusFromArea(other.total_area) +
           OUTBREAK_DANGER_RADIUS;
-
+          
         if (distance <= totalDangerZone) affectedFarmerIds.add(other.owner_id);
       }
     });
 
     if (affectedFarmerIds.size > 0) {
       const farmerIds = Array.from(affectedFarmerIds);
-
+      
       await prisma.notification.createMany({
         data: farmerIds.map((userId) => ({
           user_id: userId,
@@ -170,21 +170,22 @@ class AiModelService extends BaseService<
       });
 
       const clearNotificationPromises = farmerIds.map((id) =>
-        this.invalidateCache({ userId: id }),
+        this.invalidateCache({ userId: id })
       );
-
+      
       await Promise.all(clearNotificationPromises);
     }
   }
 
   private async hitMlServer(imageUrl: string): Promise<AIAnalysisResult> {
     try {
+      
       const response = await axios.post(
-        AI_ENDPOINT,
+        AI_ENDPOINT + "/predict",
         { image_url: imageUrl },
         { timeout: 15000 },
       );
-
+      
       const rawData = response.data;
       if (!rawData) throw new ApiError(502, "Model ML tidak merespon.");
 
@@ -241,10 +242,8 @@ class AiModelService extends BaseService<
 
     const patterns = {
       desc: /Penyakit:\n([\s\S]*?)(?=\n\n(?:Penyebab|Causes):|\n\n(?:Penanganan|Treatment):|$)/i,
-      causes:
-        /Penyebab:\n([\s\S]*?)(?=\n\n(?:Penanganan|Treatment):|\n\n(?:Pencegahan|Prevention):|$)/i,
-      treat:
-        /(?:Penanganan|Treatment):\n([\s\S]*?)(?=\n\n(?:Pencegahan|Prevention):|\n\n(?:Pemulihan|Recovery):|$)/i,
+      causes: /Penyebab:\n([\s\S]*?)(?=\n\n(?:Penanganan|Treatment):|\n\n(?:Pencegahan|Prevention):|$)/i,
+      treat: /(?:Penanganan|Treatment):\n([\s\S]*?)(?=\n\n(?:Pencegahan|Prevention):|\n\n(?:Pemulihan|Recovery):|$)/i,
       prev: /(?:Pencegahan|Prevention):\n([\s\S]*?)(?=\n\n(?:Pemulihan|Recovery):|$)/i,
       rec: /(?:Pemulihan|Recovery):\n([\s\S]*?)$/i,
     };

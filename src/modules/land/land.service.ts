@@ -18,12 +18,63 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
     super(prisma.land, "lands");
   }
 
-  private async invalidateExtraCache() {
-    await cacheHelper.delete([this.LAND_STATS_KEY, this.LAND_GEO_DATA_KEY]);
+  /**
+   * PURGE SYSTEM: Menghapus semua kemungkinan cache agar data selalu fresh.
+   * Dipanggil setiap kali ada perubahan data (Create, Update, Soft Delete).
+   */
+  /**
+   * NUKLIR PURGE SYSTEM: Menghapus seluruh cache yang bersinggungan dengan
+   * Lahan. Lahan adalah root dari Cycle, Health, dan Harvest. Jika Lahan
+   * berubah, semua cache relasi di Redis harus dimusnahkan.
+   */
+  public async purgeLandCache(landId?: string, userId?: string) {
+    const patterns = [
+      this.LAND_STATS_KEY,
+      this.LAND_GEO_DATA_KEY,
+      `lands:all:*`,
+      // FIX: Hapus 's' agar match dengan URL endpoint kamu
+      `cache:*land*`,
+      `planting-cycles:all:*`,
+      `planting-cycles:heatmap:*`,
+      // FIX: Hapus 's' agar match dengan URL /planting-cycle
+      `cache:*planting-cycle*`,
+      `health:stats`,
+      // FIX: Match dengan URL /health-report
+      `cache:*health-report*`,
+      `health:reports-cycle:*`,
+      `harvest:dashboard:*`,
+      `cache:*harvest-report*`,
+      `analytics:*`,
+    ];
+
+    const promises: Promise<any>[] = patterns.map((p) =>
+      cacheHelper.deletePattern(p),
+    );
+
+    if (landId) {
+      promises.push(cacheHelper.delete(this.getDetailKey(landId)));
+      promises.push(cacheHelper.delete(`lands:detail:${landId}`));
+      promises.push(cacheHelper.deletePattern(`cache:*${landId}*`));
+      promises.push(
+        cacheHelper.deletePattern(`planting-cycles:detail:*${landId}*`),
+      );
+    }
+
+    if (userId) {
+      promises.push(cacheHelper.deletePattern(`lands:user:${userId}:*`));
+      promises.push(cacheHelper.deletePattern(`cache:*${userId}*`));
+      promises.push(cacheHelper.delete(`harvest:dashboard:${userId}`));
+      promises.push(
+        cacheHelper.deletePattern(`notifications:user:${userId}:*`),
+      );
+    }
+
+    await Promise.all(promises);
   }
 
   async findDetail(landId: string) {
-    const cacheKey = this.getDetailKey(landId);
+    // Pastikan Key ini SAMA dengan yang di-delete di purgeLandCache
+    const cacheKey = `lands:detail:${landId}`;
 
     return cacheHelper.getOrSet(cacheKey, async () => {
       const data = await prisma.land.findUnique({
@@ -34,7 +85,10 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
             orderBy: { start_date: "desc" },
             include: {
               commodity: true,
-              daily_activities: { orderBy: { activity_date: "desc" } },
+              daily_activities: {
+                orderBy: { activity_date: "desc" },
+                take: 10,
+              }, // Batasi take agar cache tidak obesitas
             },
           },
         },
@@ -52,16 +106,12 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
       data: { ...data, owner_id: userId },
     });
 
-    await Promise.all([
-      this.invalidateCache({ userId }),
-      this.invalidateExtraCache(),
-    ]);
-
+    await this.purgeLandCache(undefined, userId);
     return result;
   }
 
   async updateLand(id: string, data: UpdateLandDto) {
-    const currentLand = await this.findById(id);
+    const currentLand = await this.findById(id, {}, true);
 
     if (data.location || data.total_area) {
       const newLocation = data.location || (currentLand.location as any);
@@ -74,11 +124,22 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
       data,
     });
 
-    await Promise.all([
-      this.invalidateCache({ id, userId: currentLand.owner_id }),
-      this.invalidateExtraCache(),
-    ]);
+    await this.purgeLandCache(id, currentLand.owner_id);
+    return result;
+  }
 
+  async softDelete(id: string) {
+    const currentLand = await this.findById(id, {}, true);
+
+    const result = await prisma.land.update({
+      where: { id },
+      data: {
+        is_active: false,
+        deleted_at: new Date(),
+      },
+    });
+
+    await this.purgeLandCache(id, currentLand.owner_id);
     return result;
   }
 
@@ -92,14 +153,18 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
         const [landAggregations, newLandsThisMonth, activeCycles] =
           await Promise.all([
             prisma.land.aggregate({
+              where: { is_active: true },
               _count: { id: true },
               _sum: { total_area: true },
             }),
             prisma.land.count({
-              where: { created_at: { gte: startOfMonth } },
+              where: {
+                is_active: true,
+                created_at: { gte: startOfMonth },
+              },
             }),
             prisma.plantingCycle.count({
-              where: { status: "HARVESTED" },
+              where: { status: "PLANTING" },
             }),
           ]);
 
@@ -114,22 +179,6 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
     );
   }
 
-  async softDelete(id: string) {
-    const currentLand = await this.findById(id);
-
-    const result = await prisma.land.update({
-      where: { id },
-      data: { is_active: false, deleted_at: new Date() },
-    });
-
-    await Promise.all([
-      this.invalidateCache({ id, userId: currentLand.owner_id }),
-      this.invalidateExtraCache(),
-    ]);
-
-    return result;
-  }
-
   private async validateOverlap(
     location: { latitude: number; longitude: number },
     totalArea: number,
@@ -142,11 +191,19 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
       async () => {
         return await prisma.land.findMany({
           where: { is_active: true },
-          select: { id: true, name: true, total_area: true, location: true },
+          select: {
+            id: true,
+            name: true,
+            total_area: true,
+            location: true,
+            is_active: true,
+          },
         });
       },
       1800,
     );
+
+    console.log(existingLands);
 
     for (const land of existingLands) {
       if (land.id === excludeId) continue;
@@ -173,7 +230,10 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
   }
 
   async getLands() {
-    return this.findAll({ include: { owner: true } });
+    return this.findAll({
+      where: { is_active: true },
+      include: { owner: true },
+    });
   }
 }
 

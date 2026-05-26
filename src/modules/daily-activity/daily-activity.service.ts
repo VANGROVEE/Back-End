@@ -4,6 +4,7 @@ import { ApiError } from "@/common/utils/api-error";
 import { cacheHelper } from "@/common/utils/cache";
 import { calculateDistance, getRadiusFromArea } from "@/common/utils/geo";
 import { Prisma, STATUS, type DailyActivity } from "@/generated/prisma/client";
+import { landService } from "../land/land.service";
 import type {
   AiRawResultDto,
   CreateDailyActivityDto,
@@ -17,6 +18,45 @@ class DailyActivityService extends BaseService<
 > {
   constructor() {
     super(prisma.dailyActivity, "daily-activities");
+  }
+
+  private async invalidateRelatedCaches(cycleId: string) {
+    const cycle = await prisma.plantingCycle.findUnique({
+      where: { id: cycleId },
+      include: { land: true },
+    });
+
+    const promises: Promise<any>[] = [
+      this.invalidateCache({ id: cycleId }),
+
+      cacheHelper.deletePattern(`daily-activities:*`),
+      cacheHelper.deletePattern(`cache:*daily-activities*`),
+
+      cacheHelper.deletePattern(`health-reports:*`),
+      cacheHelper.delete(`health:reports-cycle:${cycleId}`),
+      cacheHelper.deletePattern(`cache:*health*`),
+
+      cacheHelper.deletePattern(`harvest-reports:*`),
+      cacheHelper.deletePattern(`cache:*harvest*`),
+      cacheHelper.delete(`harvest:dashboard:${cycle?.land?.owner_id}`),
+
+      cacheHelper.delete(`planting-cycles:detail:${cycleId}`),
+      cacheHelper.deletePattern(`planting-cycles:*`),
+      cacheHelper.deletePattern(`cache:*planting-cycles*`),
+      cacheHelper.deletePattern(`cache:*heatmap*`),
+    ];
+
+    if (cycle) {
+      promises.push(
+        landService.purgeLandCache(cycle.land_id, cycle.land.owner_id),
+        cacheHelper.deletePattern(`cache:*${cycle.land.owner_id}*`),
+        cacheHelper.deletePattern(`cache:*${cycle.land_id}*`),
+
+        cacheHelper.deletePattern(`*${cycleId}*`),
+      );
+    }
+
+    await Promise.all(promises);
   }
 
   async createActivity(data: CreateDailyActivityDto) {
@@ -78,33 +118,6 @@ class DailyActivityService extends BaseService<
     await this.invalidateRelatedCaches(data.cycle_id);
 
     return result;
-  }
-
-  private async invalidateRelatedCaches(cycleId: string) {
-    const cycle = await prisma.plantingCycle.findUnique({
-      where: { id: cycleId },
-      include: { land: true },
-    });
-
-    const promises: Promise<any>[] = [
-      this.invalidateCache(),
-      cacheHelper.deletePattern(`planting-cycles:all:*`),
-      cacheHelper.delete([
-        `planting-cycles:detail:${cycleId}`,
-        `planting-cycles:heatmap:all`,
-        `planting-cycles:heatmap:${cycleId}`,
-        `health:reports-cycle:${cycleId}`,
-      ]),
-    ];
-
-    if (cycle) {
-      promises.push(this.invalidateCache({ userId: cycle.land.owner_id }));
-      promises.push(
-        cacheHelper.delete(`harvest:dashboard:${cycle.land.owner_id}`),
-      );
-    }
-
-    await Promise.all(promises);
   }
 
   private async handleSaveAiReport(
@@ -204,7 +217,9 @@ class DailyActivityService extends BaseService<
       });
 
       for (const id of farmerIds) {
-        await this.invalidateCache({ userId: id });
+        await cacheHelper.deletePattern(`notifications:user:${id}:*`);
+        await cacheHelper.deletePattern(`cache:*notifications*`);
+        await cacheHelper.deletePattern(`cache:*${id}*`);
       }
     }
   }
@@ -251,7 +266,7 @@ class DailyActivityService extends BaseService<
     }
 
     if (["COMPLETED", "FAILED"].includes(cycle.status)) {
-      throw new ApiError(400, "Siklus sudah ditutup (Selesai/Gagal).");
+      throw new ApiError(400, "Siklus sudah ditutup.");
     }
 
     return cycle;
