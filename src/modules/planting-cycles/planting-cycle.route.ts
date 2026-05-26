@@ -29,6 +29,14 @@ export default (router: Router, prefix: string) => {
   );
 
   router.get(
+    `${prefix}/cycle-summary`,
+    authenticate,
+    validate(getPlantingCycleSchema),
+    autoCache(3600, true),
+    plantingCycleController.getCycleSummary,
+  );
+
+  router.get(
     `${prefix}/:id`,
     authenticate,
     validate(commonSchema.paramsId),

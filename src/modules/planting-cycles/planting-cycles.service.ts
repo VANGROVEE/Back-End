@@ -2,7 +2,7 @@ import { BaseService } from "@/common/base/service";
 import { prisma } from "@/common/config/prisma";
 import { ApiError } from "@/common/utils/api-error";
 import { cacheHelper } from "@/common/utils/cache";
-import type { PlantingCycle, STATUS } from "@/generated/prisma/client";
+import { STATUS, type PlantingCycle } from "@/generated/prisma/client";
 import { landService } from "../land/land.service";
 import type {
   CreatePlantingCycleDto,
@@ -194,6 +194,78 @@ class PlantingCycleService extends BaseService<
         });
       },
       1800,
+    );
+  }
+  async getCycleSummary(id: string) {
+    return cacheHelper.getOrSet(
+      `planting-cycles:summary:${id}`,
+      async () => {
+        const cycle = await prisma.plantingCycle.findUnique({
+          where: { id },
+          include: {
+            commodity: true,
+            land: {
+              select: { name: true, location: true },
+            },
+            _count: {
+              select: {
+                daily_activities: true,
+                health_reports: true,
+              },
+            },
+            daily_activities: {
+              select: {
+                activity_type: true,
+                amount: true,
+              },
+            },
+            harvest_reports: true,
+          },
+        });
+
+        if (!cycle) throw new ApiError(404, "Siklus tanam tidak ditemukan");
+
+        if (cycle.status !== STATUS.COMPLETED) {
+          throw new ApiError(
+            400,
+            "Siklus belum selesai. Laporan ringkasan hanya tersedia untuk siklus yang sudah dipanen.",
+          );
+        }
+        const stats = cycle.daily_activities.reduce(
+          (acc, curr) => {
+            if (curr.activity_type === "WATERING")
+              acc.total_water += Number(curr.amount || 0);
+            if (curr.activity_type === "FERTILIZING")
+              acc.total_fertilizer += Number(curr.amount || 0);
+            return acc;
+          },
+          { total_water: 0, total_fertilizer: 0 },
+        );
+
+        const end = cycle.estimated_harvest
+          ? new Date(cycle.estimated_harvest)
+          : new Date();
+        const durationDays = Math.floor(
+          (end.getTime() - new Date(cycle.start_date).getTime()) /
+            (1000 * 3600 * 24),
+        );
+
+        return {
+          id: cycle.id,
+          status: cycle.status,
+          commodity_name: cycle.commodity.name,
+          land_name: cycle.land.name,
+          duration_days: durationDays,
+          total_activities: cycle._count.daily_activities,
+          total_health_issues: cycle._count.health_reports,
+          resources: {
+            water_used_liter: stats.total_water,
+            fertilizer_used_kg: stats.total_fertilizer,
+          },
+          harvest: cycle.harvest_reports[0] || null,
+        };
+      },
+      3600,
     );
   }
 }

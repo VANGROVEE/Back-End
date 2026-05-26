@@ -228,12 +228,21 @@ class DailyActivityService extends BaseService<
     tx: PrismaTransaction,
     data: CreateDailyActivityDto,
   ) {
+    await tx.plantingCycle.update({
+      where: { id: data.cycle_id },
+      data: {
+        status: "HARVESTED",
+        end_date: new Date(),
+      },
+    });
+
     return await tx.harvestReport.create({
       data: {
         cycle_id: data.cycle_id,
         total_yield_kg: data.total_yield_kg ?? 0,
         quality_grade: data.quality_grade ?? "PENDING_AI",
         image_proof_url: data.image_proof_url ?? null,
+        notes: data.notes ?? "Panen dicatat melalui aktivitas harian",
         ai_quality_metrics: Prisma.JsonNull,
       },
     });

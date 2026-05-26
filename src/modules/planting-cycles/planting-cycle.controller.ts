@@ -43,6 +43,19 @@ export const plantingCycleController = {
     );
   }),
 
+  getCycleSummary: catchAsync(async (req: Request, res: Response) => {
+    const { cycle_id } = req.query as { cycle_id: string };
+
+    const result = await plantingCycleService.getCycleSummary(cycle_id);
+
+    return sendResponse(
+      res,
+      200,
+      "Ringkasan laporan siklus tanam berhasil dibuat.",
+      result,
+    );
+  }),
+
   findAll: catchAsync(async (req: Request, res: Response) => {
     const user = req.user;
 
