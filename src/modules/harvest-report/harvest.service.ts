@@ -33,7 +33,12 @@ class HarvestReportService extends BaseService<
           }),
 
           prisma.plantingCycle.findMany({
-            where: { land: { owner_id: userId } },
+            where: {
+              land: { owner_id: userId },
+              status: {
+                in: ["COMPLETED", "FAILED"],
+              },
+            },
             include: {
               commodity: true,
               _count: { select: { daily_activities: true } },

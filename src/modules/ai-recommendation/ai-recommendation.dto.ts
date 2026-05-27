@@ -20,6 +20,7 @@ export const aiRecommendationQuerySchema = z
       description: "Jenis rekomendasi: DAILY atau FAILURE_ANALYSIS",
     }),
   })
+
   .openapi("AiRecommendationQuery");
 
 export const getAiRecommendationSchema = z.object({

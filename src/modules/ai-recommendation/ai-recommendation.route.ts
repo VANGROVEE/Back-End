@@ -5,7 +5,10 @@ import type { Router } from "express";
 import { aiRecommendationController } from "./ai-recommendation.controller";
 import "./ai-recommendation.docs";
 import { autoCache } from "@/common/utils/cache";
-import { aiRecommendationQuerySchema } from "./ai-recommendation.dto";
+import {
+  aiRecommendationQuerySchema,
+  getAiRecommendationSchema,
+} from "./ai-recommendation.dto";
 
 export default (router: Router, prefix: string) => {
   router.get(
@@ -26,9 +29,8 @@ export default (router: Router, prefix: string) => {
 
   router.get(
     prefix,
-    validate(aiRecommendationQuerySchema),
+    validate(getAiRecommendationSchema),
     authenticate,
-
     autoCache(600, true),
     aiRecommendationController.getAiRecomendation,
   );

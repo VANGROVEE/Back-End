@@ -19,13 +19,11 @@ class AiRecommendationService extends BaseService<
   }
 
   async findExisting(cycle_id: string, date: Date, type: RecommendationType) {
-    return await this.model.findUnique({
+    return await this.model.findFirst({
       where: {
-        cycle_id_recommendation_date_type: {
-          cycle_id,
-          recommendation_date: date,
-          type,
-        },
+        cycle_id,
+        recommendation_date: date,
+        type,
       },
     });
   }
@@ -41,20 +39,21 @@ class AiRecommendationService extends BaseService<
 
     return await this.model.upsert({
       where: {
+        // Nama key ini harus sesuai dengan @@unique([cycle_id, recommendation_date, type]) di schema.prisma
         cycle_id_recommendation_date_type: {
           cycle_id,
           recommendation_date: today,
           type,
         },
       },
+      update: {
+        ai_response,
+        context_used,
+      },
       create: {
         cycle_id,
         type,
         recommendation_date: today,
-        ai_response,
-        context_used,
-      },
-      update: {
         ai_response,
         context_used,
       },

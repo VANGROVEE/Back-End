@@ -1,15 +1,22 @@
 import { catchAsync } from "@/common/utils/express-async-errors";
 import { sendResponse } from "@/common/utils/response";
+import { ApiError } from "@/common/utils/api-error";
 import type { Request, Response } from "express";
 import { aiRecommendationService } from "./ai-recommendation.service";
 import { RecommendationType } from "@/generated/prisma/client";
 
 export const aiRecommendationController = {
   getAiRecomendation: catchAsync(async (req: Request, res: Response) => {
-    const { cycle_id } = req.query as { cycle_id: string };
+    const { cycle_id, type } = req.query as {
+      cycle_id: string;
+      type: RecommendationType;
+    };
 
     const recommendations = await aiRecommendationService.findAll({
-      where: { cycle_id },
+      where: {
+        cycle_id,
+        ...(type && { type }),
+      },
       orderBy: { created_at: "desc" },
     });
 
@@ -23,6 +30,7 @@ export const aiRecommendationController = {
 
   getDailyRecommendation: catchAsync(async (req: Request, res: Response) => {
     const { cycle_id } = req.params as { cycle_id: string };
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 

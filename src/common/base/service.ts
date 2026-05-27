@@ -69,7 +69,6 @@ export abstract class BaseService<T, D extends PrismaDelegate> {
 
   async findAll(args?: Parameters<D["findMany"]>[0]): Promise<T[]> {
     const cacheKey = this.getListKey(args);
-    console.log(`[REDIS DEBUG] Prefix: ${this.cachePrefix} | Key: ${cacheKey}`);
     return cacheHelper.getOrSet(cacheKey, async () => {
       const result = await this.model.findMany(args);
       return result as T[];
