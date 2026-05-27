@@ -69,13 +69,12 @@ export const aiRecommendationController = {
   }),
 
   getAnalyzeCropFailure: catchAsync(async (req: Request, res: Response) => {
-    const { cycle_id } = req.params as { cycle_id: string };
+    const { id } = req.params as { id: string };
 
-    const aiResult =
-      await aiRecommendationService.generateFailureAnalysis(cycle_id);
+    const aiResult = await aiRecommendationService.generateFailureAnalysis(id);
 
     const result = await aiRecommendationService.saveAnalysis(
-      cycle_id,
+      id,
       RecommendationType.FAILURE_ANALYSIS,
       aiResult,
       { note: "Failure analysis requested" },
