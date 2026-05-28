@@ -102,7 +102,7 @@ export class DashboardAnalyzeService {
                 id: true,
                 start_date: true,
                 commodity: { select: { name: true } },
-                // Ambil info lahan untuk pengelompokan
+
                 land: {
                   select: { id: true, name: true },
                 },
@@ -113,10 +113,9 @@ export class DashboardAnalyzeService {
             },
           },
           orderBy: { created_at: "desc" },
-          take: 30, // Ditingkatkan sedikit karena mencakup banyak lahan
+          take: 30,
         });
 
-        // Transformasi: Kategorikan berdasarkan Lahan -> Siklus
         const groupedByLand = reports.reduce((acc: any, report) => {
           const landId = report.cycle.land.id;
           const landName = report.cycle.land.name;
@@ -145,13 +144,137 @@ export class DashboardAnalyzeService {
           return acc;
         }, {});
 
-        // Kembalikan dalam bentuk Array agar mudah di-map di Frontend
         return Object.values(groupedByLand);
       },
       600,
     );
   }
 
+  async getPlantingTrend() {
+    const stats = await prisma.commodity.findMany({
+      select: {
+        name: true,
+        _count: {
+          select: { planting_cycles: true },
+        },
+      },
+      orderBy: {
+        planting_cycles: {
+          _count: "desc",
+        },
+      },
+      take: 5,
+    });
+
+    return stats.map((item) => ({
+      name: item.name,
+      value: item._count.planting_cycles,
+    }));
+  }
+
+  async getDiseaseTrend(userId: string) {
+    const diseaseGroups = await prisma.healthReport.groupBy({
+      by: ["disease_id"],
+      _count: {
+        id: true,
+      },
+      where: {
+        cycle: {
+          land: {
+            owner_id: userId,
+          },
+        },
+        disease_id: {
+          not: null,
+        },
+      },
+      orderBy: {
+        _count: {
+          id: "desc",
+        },
+      },
+      take: 5,
+    });
+
+    if (diseaseGroups.length === 0) {
+      return [];
+    }
+
+    const diseaseIds = diseaseGroups.map((group) => group.disease_id as string);
+    const diseaseDetails = await prisma.disease.findMany({
+      where: {
+        id: {
+          in: diseaseIds,
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    const formattedTrend = diseaseGroups.map((group, index) => {
+      const detail = diseaseDetails.find((d) => d.id === group.disease_id);
+      const caseCount = group._count.id;
+
+      let riskLevel = "LOW RISK";
+      if (index === 0 && caseCount > 10) riskLevel = "CRITICAL THREAT";
+      else if (caseCount > 5) riskLevel = "MEDIUM RISK";
+
+      return {
+        rank: String(index + 1).padStart(2, "0"),
+        name: detail?.name || "Unknown Pathogen",
+        cases: caseCount,
+        riskLevel: riskLevel,
+      };
+    });
+
+    return formattedTrend;
+  }
+
+  async getActiveRecommendations(userId: string) {
+    const activeCycles = await prisma.plantingCycle.findMany({
+      where: {
+        land: { owner_id: userId },
+        status: "PLANTING",
+      },
+      select: { id: true },
+    });
+
+    const cycleIds = activeCycles.map((c) => c.id);
+
+    if (cycleIds.length === 0) return [];
+
+    const log = await prisma.aiRecommendationLog.findFirst({
+      where: {
+        cycle_id: { in: cycleIds },
+        type: "DAILY",
+      },
+      include: {
+        cycle: {
+          include: { land: true },
+        },
+      },
+      orderBy: { created_at: "desc" },
+    });
+
+    if (!log) return [];
+
+    const aiData = log.ai_response as any;
+
+    return [
+      {
+        id: log.id,
+        priority: aiData.priority || "NORMAL",
+        task: aiData.task_title || "Monitoring Rutin",
+        description:
+          aiData.action_steps || "Cek kondisi tanaman secara berkala.",
+        location: log.cycle.land.name,
+        type: log.type,
+        date: log.recommendation_date,
+      },
+    ];
+  }
   private determineHealthStatus(
     lastActivity: any,
   ): "NORMAL" | "KRITIS" | "WARNING" {

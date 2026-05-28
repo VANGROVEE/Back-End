@@ -16,4 +16,23 @@ export default (router: Router, prefix: string) => {
     autoCache(900, true),
     dashboardAnalyzeController.getHealth,
   );
+
+  router.get(
+    `${prefix}/planting-trend`,
+    authenticate,
+    dashboardAnalyzeController.getPlantingTrend,
+  );
+  router.get(
+    `${prefix}/diase-reports`,
+    authenticate,
+    autoCache(900, true),
+    dashboardAnalyzeController.getDiseaseTrend,
+  );
+
+  router.get(
+    `${prefix}/recommendations-reports`,
+    authenticate,
+    autoCache(900, true),
+    dashboardAnalyzeController.getActiveRecommendations,
+  );
 };

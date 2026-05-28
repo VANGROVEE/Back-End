@@ -38,4 +38,56 @@ export const dashboardAnalyzeController = {
       healthData,
     );
   },
+
+  async getPlantingTrend(req: Request, res: Response) {
+    const userId = req.user?.sub;
+
+    if (!userId) {
+      throw new ApiError(401, "Sesi kadaluwarsa, silakan login kembali");
+    }
+
+    const trendData = await dashboardAnalyzeService.getPlantingTrend();
+
+    return sendResponse(
+      res,
+      200,
+      "Data tren produksi komoditas berhasil dimuat",
+      trendData,
+    );
+  },
+
+  async getDiseaseTrend(req: Request, res: Response) {
+    const userId = req.user?.sub;
+
+    if (!userId) {
+      throw new ApiError(401, "Sesi kadaluwarsa, silakan login kembali");
+    }
+
+    const trendData = await dashboardAnalyzeService.getDiseaseTrend(userId);
+
+    return sendResponse(
+      res,
+      200,
+      "Data tren penyakit tanaman berhasil dimuat",
+      trendData,
+    );
+  },
+
+  async getActiveRecommendations(req: Request, res: Response) {
+    const userId = req.user?.sub;
+
+    if (!userId) {
+      throw new ApiError(401, "Sesi kadaluwarsa, silakan login kembali");
+    }
+
+    const trendData =
+      await dashboardAnalyzeService.getActiveRecommendations(userId);
+
+    return sendResponse(
+      res,
+      200,
+      "Data Rekomendasi berhasil dimuat",
+      trendData,
+    );
+  },
 };
