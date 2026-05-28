@@ -11,7 +11,6 @@ export const harvestReportController = {
       throw new ApiError(401, "Sesi kadaluwarsa, silakan login kembali");
     }
 
-    // 🌟 Cukup satu panggil, karena service sudah melakukan Promise.all secara internal
     const dashboardData = await harvestReportService.getDashboardData(userId);
 
     return sendResponse(

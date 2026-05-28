@@ -18,15 +18,7 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
     super(prisma.land, "lands");
   }
 
-  /**
-   * PURGE SYSTEM: Menghapus semua kemungkinan cache agar data selalu fresh.
-   * Dipanggil setiap kali ada perubahan data (Create, Update, Soft Delete).
-   */
-  /**
-   * NUKLIR PURGE SYSTEM: Menghapus seluruh cache yang bersinggungan dengan
-   * Lahan. Lahan adalah root dari Cycle, Health, dan Harvest. Jika Lahan
-   * berubah, semua cache relasi di Redis harus dimusnahkan.
-   */
+ 
   public async purgeLandCache(landId?: string, userId?: string) {
     const patterns = [
       this.LAND_STATS_KEY,

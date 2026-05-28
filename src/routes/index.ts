@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { rootHandler } from "@/modules/root";
 
-
 import authRoute from "@/modules/auth/auth.route";
 import userRoute from "@/modules/user/user.route";
 import landRoute from "@/modules/land/land.route";
@@ -14,9 +13,9 @@ import healthRoute from "@/modules/health-report/health.route";
 import aiModelRoute from "@/modules/ai-models/ai-model.route";
 import harvestRoute from "@/modules/harvest-report/harvest.route";
 import notificationRoute from "@/modules/notifications/notification.route";
+import dashboardAnalyzeRoute from "@/modules/dashboard/dashboard-analyze.route";
 
 const router = Router();
-
 
 const moduleRoutes = [
   { path: "/auth", route: authRoute },
@@ -31,10 +30,10 @@ const moduleRoutes = [
   { path: "/ml-model", route: aiModelRoute },
   { path: "/harvest-report", route: harvestRoute },
   { path: "/notifications", route: notificationRoute },
+  { path: "/analyze", route: dashboardAnalyzeRoute },
 ];
 
 router.get("/", rootHandler);
-
 
 moduleRoutes.forEach((route) => {
   route.route(router, route.path);

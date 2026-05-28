@@ -29,8 +29,8 @@ export const aiRecommendationController = {
   }),
 
   getDailyRecommendation: catchAsync(async (req: Request, res: Response) => {
-    const { cycle_id } = req.params as { cycle_id: string };
-
+    const { id } = req.params as { id: string };
+    const cycle_id = id;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
