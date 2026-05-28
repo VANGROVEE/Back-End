@@ -83,6 +83,75 @@ export class DashboardAnalyzeService {
     );
   }
 
+  async getHealthAnalysis(userId: string) {
+    const cacheKey = `${this.CACHE_PREFIX}:health:${userId}`;
+
+    return await cacheHelper.getOrSet(
+      cacheKey,
+      async () => {
+        const reports = await prisma.healthReport.findMany({
+          where: {
+            cycle: {
+              status: { in: ["PLANTING", "HARVESTED"] },
+              land: { owner_id: userId },
+            },
+          },
+          include: {
+            cycle: {
+              select: {
+                id: true,
+                start_date: true,
+                commodity: { select: { name: true } },
+                // Ambil info lahan untuk pengelompokan
+                land: {
+                  select: { id: true, name: true },
+                },
+              },
+            },
+            disease: {
+              select: { name: true },
+            },
+          },
+          orderBy: { created_at: "desc" },
+          take: 30, // Ditingkatkan sedikit karena mencakup banyak lahan
+        });
+
+        // Transformasi: Kategorikan berdasarkan Lahan -> Siklus
+        const groupedByLand = reports.reduce((acc: any, report) => {
+          const landId = report.cycle.land.id;
+          const landName = report.cycle.land.name;
+
+          if (!acc[landId]) {
+            acc[landId] = {
+              land_name: landName,
+              reports: [],
+            };
+          }
+
+          acc[landId].reports.push({
+            id: report.id,
+            confidence_score: report.confidence_score,
+            gemini_insight: report.gemini_insight,
+            is_outbreak_trigger: report.is_outbreak_trigger,
+            created_at: report.created_at,
+            cycle: {
+              id: report.cycle.id,
+              commodity_name: report.cycle.commodity.name,
+              start_date: report.cycle.start_date,
+            },
+            disease: report.disease ? { name: report.disease.name } : null,
+          });
+
+          return acc;
+        }, {});
+
+        // Kembalikan dalam bentuk Array agar mudah di-map di Frontend
+        return Object.values(groupedByLand);
+      },
+      600,
+    );
+  }
+
   private determineHealthStatus(
     lastActivity: any,
   ): "NORMAL" | "KRITIS" | "WARNING" {

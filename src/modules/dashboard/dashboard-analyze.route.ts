@@ -10,4 +10,10 @@ export default (router: Router, prefix: string) => {
     autoCache(900, true),
     dashboardAnalyzeController.getSpatialAnalysis,
   );
+  router.get(
+    `${prefix}/health-reports`,
+    authenticate,
+    autoCache(900, true),
+    dashboardAnalyzeController.getHealth,
+  );
 };

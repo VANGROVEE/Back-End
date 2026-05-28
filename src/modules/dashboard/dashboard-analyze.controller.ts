@@ -21,4 +21,21 @@ export const dashboardAnalyzeController = {
       analysisData,
     );
   },
+
+  async getHealth(req: Request, res: Response) {
+    const userId = req.user?.sub;
+
+    if (!userId) {
+      throw new ApiError(401, "Sesi kadaluwarsa, silakan login kembali");
+    }
+
+    const healthData = await dashboardAnalyzeService.getHealthAnalysis(userId);
+
+    return sendResponse(
+      res,
+      200,
+      "Laporan kesehatan AI berhasil dimuat",
+      healthData,
+    );
+  },
 };

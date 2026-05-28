@@ -27,7 +27,7 @@ class DailyActivityService extends BaseService<
     });
 
     const promises: Promise<any>[] = [
-      this.invalidateCache({ id: cycleId }),
+      cacheHelper.deletePattern("analytics:dashboard"),
 
       cacheHelper.deletePattern(`daily-activities:*`),
       cacheHelper.deletePattern(`cache:*daily-activities*`),
@@ -38,19 +38,27 @@ class DailyActivityService extends BaseService<
 
       cacheHelper.deletePattern(`harvest-reports:*`),
       cacheHelper.deletePattern(`cache:*harvest*`),
-      cacheHelper.delete(`harvest:dashboard:${cycle?.land?.owner_id}`),
-
       cacheHelper.delete(`planting-cycles:detail:${cycleId}`),
       cacheHelper.deletePattern(`planting-cycles:*`),
-      cacheHelper.deletePattern(`cache:*planting-cycles*`),
+
       cacheHelper.deletePattern(`cache:*heatmap*`),
+      cacheHelper.deletePattern(`cache:*spatial*`),
     ];
 
     if (cycle) {
+      const userId = cycle.land.owner_id;
+      const landId = cycle.land_id;
+
       promises.push(
-        landService.purgeLandCache(cycle.land_id, cycle.land.owner_id),
-        cacheHelper.deletePattern(`cache:*${cycle.land.owner_id}*`),
-        cacheHelper.deletePattern(`cache:*${cycle.land_id}*`),
+        cacheHelper.delete(`analytics:dashboard:spatial:${userId}`),
+        cacheHelper.delete(`analytics:dashboard:health:${userId}`),
+
+        landService.purgeLandCache(landId, userId),
+
+        cacheHelper.deletePattern(`cache:*${userId}*`),
+        cacheHelper.deletePattern(`cache:*${landId}*`),
+
+        cacheHelper.delete(`harvest:dashboard:${userId}`),
 
         cacheHelper.deletePattern(`*${cycleId}*`),
       );
@@ -242,7 +250,7 @@ class DailyActivityService extends BaseService<
         total_yield_kg: data.total_yield_kg ?? 0,
         quality_grade: data.quality_grade ?? "PENDING_AI",
         image_proof_url: data.image_proof_url ?? null,
-        // notes: data.notes ?? "Panen dicatat melalui aktivitas harian",
+
         ai_quality_metrics: Prisma.JsonNull,
       },
     });

@@ -18,25 +18,25 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
     super(prisma.land, "lands");
   }
 
- 
   public async purgeLandCache(landId?: string, userId?: string) {
     const patterns = [
       this.LAND_STATS_KEY,
       this.LAND_GEO_DATA_KEY,
       `lands:all:*`,
-      // FIX: Hapus 's' agar match dengan URL endpoint kamu
+
       `cache:*land*`,
       `planting-cycles:all:*`,
       `planting-cycles:heatmap:*`,
-      // FIX: Hapus 's' agar match dengan URL /planting-cycle
+
       `cache:*planting-cycle*`,
       `health:stats`,
-      // FIX: Match dengan URL /health-report
+
       `cache:*health-report*`,
       `health:reports-cycle:*`,
       `harvest:dashboard:*`,
       `cache:*harvest-report*`,
       `analytics:*`,
+      "analytics:dashboard",
     ];
 
     const promises: Promise<any>[] = patterns.map((p) =>
@@ -65,7 +65,6 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
   }
 
   async findDetail(landId: string) {
-    // Pastikan Key ini SAMA dengan yang di-delete di purgeLandCache
     const cacheKey = `lands:detail:${landId}`;
 
     return cacheHelper.getOrSet(cacheKey, async () => {
@@ -80,7 +79,7 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
               daily_activities: {
                 orderBy: { activity_date: "desc" },
                 take: 10,
-              }, // Batasi take agar cache tidak obesitas
+              },
             },
           },
         },
