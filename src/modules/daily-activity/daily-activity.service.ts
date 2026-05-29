@@ -136,14 +136,13 @@ class DailyActivityService extends BaseService<
     aiData: AiRawResultDto,
     activityDate: Date,
   ) {
-    const disease = await cacheHelper.getOrSet(
-      `disease:label:${aiData.disease_name}`,
-      async () => {
-        return await prisma.disease.findUnique({
-          where: { label_ai: aiData.disease_name },
-        });
-      },
-    );
+    const formattedLabelAi = aiData.disease_name
+      .toLowerCase()
+      .replace(/\s+/g, "_");
+
+    const disease = await prisma.disease.findUnique({
+      where: { label_ai: formattedLabelAi },
+    });
 
     const report = await tx.healthReport.create({
       data: {
