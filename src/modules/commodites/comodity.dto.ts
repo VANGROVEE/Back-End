@@ -13,7 +13,7 @@ const commonCommodityFields = {
     [
       "MANGROVE",
       "PANGAN",
-      " HORTIKULTURA_SAYUR",
+      "HORTIKULTURA_SAYUR", // <-- Perbaikan: Spasi di awal sudah dihapus
       "HORTIKULTURA_BUAH",
       "PERKEBUNAN",
       "HERBAL",
@@ -62,21 +62,22 @@ export const updateCommoditySchema = z.object({
   ),
 });
 
+// Perbaikan pada skema import untuk mengizinkan CSV
 export const importExcelSchema = z.object({
   file: z
     .object({
       fieldname: z.string(),
       originalname: z.string(),
-      mimetype: z
-        .string()
-        .refine(
-          (m) =>
-            [
-              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-              "application/vnd.ms-excel",
-            ].includes(m),
-          { message: "Hanya menerima file .xlsx atau .xls" },
-        ),
+      mimetype: z.string().refine(
+        (m) =>
+          [
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+            "application/vnd.ms-excel", // .xls
+            "text/csv", // <-- Tipe MIME standar untuk .csv
+            "application/csv", // <-- Alternatif MIME untuk .csv di beberapa sistem
+          ].includes(m),
+        { message: "Hanya menerima file .xlsx, .xls, atau .csv" },
+      ),
       size: z.number().max(5 * 1024 * 1024, "Maksimal 5MB"),
       buffer: z.any(), // Karena pakai memoryStorage
     })

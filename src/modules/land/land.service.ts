@@ -91,7 +91,7 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
   }
 
   async createLand(userId: string, data: CreateLandDto) {
-    await this.validateOverlap(data.location, data.total_area);
+    // await this.validateOverlap(data.location, data.total_area);
 
     const result = await prisma.land.create({
       data: { ...data, owner_id: userId },
@@ -107,7 +107,7 @@ class LandServices extends BaseService<Land, typeof prisma.land> {
     if (data.location || data.total_area) {
       const newLocation = data.location || (currentLand.location as any);
       const newArea = data.total_area || currentLand.total_area;
-      await this.validateOverlap(newLocation, newArea, id);
+      // await this.validateOverlap(newLocation, newArea, id);
     }
 
     const result = await prisma.land.update({

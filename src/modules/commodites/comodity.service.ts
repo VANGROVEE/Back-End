@@ -20,25 +20,116 @@ class CommodityService extends BaseService<Commodity, typeof prisma.commodity> {
   }
 
   async uploadCommodities(buffer: Buffer) {
-    const commodities = parseExcelToJson(buffer, (row) => {
-      if (!row.name || !row.slug_ai || !row.category) return null;
+    // 1. Parsing data dari file Excel / CSV baru
+    const parsedData = parseExcelToJson(buffer, (row) => {
+      // Validasi kolom wajib (disesuaikan dengan header CSV yang baru dibuat)
+      if (
+        !row.commodity_name ||
+        !row.commodity_slug_ai ||
+        !row.commodity_category
+      )
+        return null;
 
       return {
-        name: String(row.name).trim(),
-        slug_ai: String(row.slug_ai).trim().toLowerCase(),
-        is_ai_supported: String(row.is_ai_supported).toLowerCase() === "true",
-        category: row.category,
+        // Data Commodity
+        commodity_name: String(row.commodity_name).trim(),
+        commodity_slug_ai: String(row.commodity_slug_ai).trim().toLowerCase(),
+        commodity_is_ai_supported:
+          String(row.commodity_is_ai_supported).toLowerCase() === "true",
+        commodity_category: row.commodity_category,
+
+        // Data Disease (bisa kosong untuk beberapa tanaman)
+        disease_name: row.disease_name ? String(row.disease_name).trim() : null,
+        disease_label_ai: row.disease_label_ai
+          ? String(row.disease_label_ai).trim()
+          : null,
+        disease_scientific_name: row.disease_scientific_name
+          ? String(row.disease_scientific_name).trim()
+          : null,
+        disease_description: row.disease_description
+          ? String(row.disease_description).trim()
+          : null,
+        disease_local_treatment: row.disease_local_treatment
+          ? String(row.disease_local_treatment).trim()
+          : null,
+        disease_preventive_action: row.disease_preventive_action
+          ? String(row.disease_preventive_action).trim()
+          : null,
       };
+    }).filter(Boolean); // Hapus hasil null
+
+    // 2. Ekstrak Komoditas secara Unik (agar tidak duplikat di memori)
+    const uniqueCommoditiesMap = new Map();
+    for (const item of parsedData) {
+      if (!uniqueCommoditiesMap.has(item.commodity_slug_ai)) {
+        uniqueCommoditiesMap.set(item.commodity_slug_ai, {
+          name: item.commodity_name,
+          slug_ai: item.commodity_slug_ai,
+          is_ai_supported: item.commodity_is_ai_supported,
+          category: item.commodity_category,
+        });
+      }
+    }
+    const commoditiesData = Array.from(uniqueCommoditiesMap.values());
+
+    // 3. Simpan Komoditas ke Database
+    const commodityResult = await prisma.commodity.createMany({
+      data: commoditiesData,
+      skipDuplicates: true, // Abaikan jika komoditas (name / slug_ai) sudah ada
     });
 
-    const result = await prisma.commodity.createMany({
-      data: commodities,
-      skipDuplicates: true,
+    // 4. Ambil ID komoditas dari database untuk direlasikan ke Disease
+    // Ambil berdasarkan slug_ai yang ada di file
+    const slugs = commoditiesData.map((c) => c.slug_ai);
+    const existingCommodities = await prisma.commodity.findMany({
+      where: { slug_ai: { in: slugs } },
+      select: { id: true, slug_ai: true },
     });
 
+    // Buat map pencarian cepat (slug_ai -> id komoditas)
+    const commodityIdMap = new Map(
+      existingCommodities.map((c) => [c.slug_ai, c.id]),
+    );
+
+    // 5. Persiapkan Data Disease yang memiliki Relasi
+    const diseasesData = [];
+    for (const item of parsedData) {
+      // Lewati jika baris ini tidak punya nama penyakit atau label AI yang valid
+      if (!item.disease_name || !item.disease_label_ai) continue;
+
+      const commodity_id = commodityIdMap.get(item.commodity_slug_ai);
+      // Lewati jika entah kenapa komoditas tidak ditemukan di DB
+      if (!commodity_id) continue;
+
+      diseasesData.push({
+        name: item.disease_name,
+        label_ai: item.disease_label_ai, // Ini akan menggunakan format unik seperti "tomato_target_spot"
+        commodity_id: commodity_id, // Relasi Foreign Key
+        scientific_name: item.disease_scientific_name || null,
+        description: item.disease_description || null,
+        local_treatment: item.disease_local_treatment || null,
+        preventive_action: item.disease_preventive_action || null,
+      });
+    }
+
+    // 6. Simpan Penyakit ke Database
+    let diseaseResult = { count: 0 };
+    if (diseasesData.length > 0) {
+      diseaseResult = await prisma.disease.createMany({
+        data: diseasesData,
+        skipDuplicates: true, // Menghindari error constraint jika label_ai sudah terdaftar
+      });
+    }
+
+    // 7. Clear Cache
     await Promise.all([this.invalidateCache(), this.invalidateExtraCache()]);
 
-    return result;
+    // Kembalikan rekap agar di log / response terlihat seberapa banyak data yang masuk
+    return {
+      success: true,
+      commoditiesInserted: commodityResult.count,
+      diseasesInserted: diseaseResult.count,
+    };
   }
 
   async getStats() {

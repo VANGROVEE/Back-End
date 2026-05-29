@@ -169,66 +169,77 @@ class DailyActivityService extends BaseService<
   }
 
   private async handleOutbreakAlert(currentLand: any, disease: any) {
-    const loc = currentLand.location as any;
-    if (!loc?.latitude || !loc?.longitude) return;
+    try {
+      const loc = currentLand.location as any;
+      if (!loc?.latitude || !loc?.longitude) return;
 
-    const otherLands = await cacheHelper.getOrSet(
-      "lands:geo-data",
-      async () => {
-        return await prisma.land.findMany({
-          where: { is_active: true },
-          select: {
-            owner_id: true,
-            location: true,
-            total_area: true,
-            id: true,
-          },
-        });
-      },
-      1800,
-    );
+      // PERBAIKAN 1 & 2: Mengembalikan callback fetchFn ke dalam getOrSet
+      const otherLands = (await cacheHelper.getOrSet(
+        "lands:geo-data",
+        async () => {
+          return await prisma.land.findMany({
+            where: { is_active: true },
+            select: {
+              owner_id: true,
+              location: true,
+              total_area: true,
+              id: true,
+            },
+          });
+        },
+        1800, // Cache 30 menit
+      )) as any[]; // Casting ke array untuk menghilangkan error tipe 'unknown'
 
-    const affectedFarmerIds = new Set<string>();
-    const OUTBREAK_DANGER_RADIUS = 500;
-    const radiusInfected = getRadiusFromArea(currentLand.total_area);
+      const affectedFarmerIds = new Set<string>();
+      const OUTBREAK_DANGER_RADIUS = 500;
+      const radiusInfected = getRadiusFromArea(currentLand.total_area);
 
-    otherLands.forEach((other) => {
-      if (other.owner_id === currentLand.owner_id) return;
+      // PERBAIKAN 3: Memberikan tipe explicit 'any' pada parameter 'other'
+      otherLands.forEach((other: any) => {
+        if (other.owner_id === currentLand.owner_id) return;
 
-      const targetLoc = other.location as any;
-      if (targetLoc?.latitude && targetLoc?.longitude) {
-        const distance = calculateDistance(
-          Number(loc.latitude),
-          Number(loc.longitude),
-          Number(targetLoc.latitude),
-          Number(targetLoc.longitude),
-        );
+        const targetLoc = other.location as any;
 
-        const totalDangerZone =
-          radiusInfected +
-          getRadiusFromArea(other.total_area) +
-          OUTBREAK_DANGER_RADIUS;
+        // PERBAIKAN 4 & 5: Mengembalikan logika perhitungan jarak dan zona bahaya
+        if (targetLoc?.latitude && targetLoc?.longitude) {
+          const distance = calculateDistance(
+            Number(loc.latitude),
+            Number(loc.longitude),
+            Number(targetLoc.latitude),
+            Number(targetLoc.longitude),
+          );
 
-        if (distance <= totalDangerZone) affectedFarmerIds.add(other.owner_id);
-      }
-    });
+          const totalDangerZone =
+            radiusInfected +
+            getRadiusFromArea(other.total_area) +
+            OUTBREAK_DANGER_RADIUS;
 
-    if (affectedFarmerIds.size > 0) {
-      const farmerIds = Array.from(affectedFarmerIds);
-      await prisma.notification.createMany({
-        data: farmerIds.map((userId) => ({
-          user_id: userId,
-          title: `⚠️ Waspada Wabah: ${disease.name}`,
-          message: `AI mendeteksi ${disease.name} di lahan sekitar Anda. Segera cek kondisi tanaman Anda.`,
-          type: "OUTBREAK_ALERT",
-        })),
+          if (distance <= totalDangerZone) {
+            affectedFarmerIds.add(other.owner_id);
+          }
+        }
       });
 
-      for (const id of farmerIds) {
-        await cacheHelper.deletePattern(`notifications:user:${id}:*`);
-        await cacheHelper.deletePattern(`cache:*notifications*`);
-        await cacheHelper.deletePattern(`cache:*${id}*`);
+      if (affectedFarmerIds.size > 0) {
+        const farmerIds = Array.from(affectedFarmerIds);
+
+        await prisma.notification.createMany({
+          data: farmerIds.map((userId) => ({
+            user_id: userId,
+            title: `⚠️ Waspada Wabah: ${disease.name}`,
+            message: `AI mendeteksi ${disease.name} di radius 500m dari lahan Anda. Segera cek kondisi tanaman Anda.`,
+            type: "OUTBREAK_ALERT",
+          })),
+        });
+
+        for (const id of farmerIds) {
+          await cacheHelper.deletePattern(`notifications:user:${id}:*`);
+          await cacheHelper.deletePattern(`cache:*notifications*`);
+          await cacheHelper.deletePattern(`cache:*${id}*`);
+        }
       }
+    } catch (error) {
+      console.error("[BACKGROUND TASK FAILED] handleOutbreakAlert:", error);
     }
   }
 
