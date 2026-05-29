@@ -11,6 +11,7 @@ const redisClient: RedisClientType = createClient({
         logger.error("Redis reconnect attempts exceeded 10 times. Stopping...");
         return new Error("Redis connection lost");
       }
+
       return Math.min(retries * 100, 3000);
     },
   },
@@ -26,6 +27,16 @@ export const connectRedis = async (): Promise<void> => {
   try {
     if (!redisClient.isOpen) {
       await redisClient.connect();
+
+      // --- TAMBAHKAN BAGIAN INI ---
+      // Cek apakah aplikasi berjalan di mode development
+      if (env.NODE_ENV === "development") {
+        await redisClient.flushDb(); // Menghapus semua data di database Redis saat ini
+        logger.info(
+          "🧹 Redis cache cleared automatically for development mode!",
+        );
+      }
+      // ----------------------------
     }
   } catch (error) {
     console.log("\n" + "=".repeat(50));

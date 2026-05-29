@@ -6,7 +6,9 @@ import { commodityService } from "./comodity.service";
 
 export const commodityController = {
   findAll: catchAsync(async (req: Request, res: Response) => {
-    const result = await commodityService.findAll();
+    const result = await commodityService.findAll({
+      orderBy: { name: "desc" },
+    });
 
     return sendResponse(
       res,
