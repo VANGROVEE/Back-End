@@ -9,6 +9,7 @@ import { notFoundHandler } from "../middlewares/notFound";
 import { httpLogger } from "./pino";
 import { setupSwagger } from "./swagger";
 import { globalLimiter } from "../middlewares/rate-limiter";
+import { rootHandler } from "@/modules/root";
 
 export const app: Express = express();
 app.use(helmet());
@@ -27,7 +28,7 @@ app.use(cookieParser());
 app.use(express.urlencoded({ extended: false }));
 
 setupSwagger(app);
-
+app.use("/", rootHandler);
 app.use("/api/v1", router);
 
 app.use(notFoundHandler);

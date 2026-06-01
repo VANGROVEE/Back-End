@@ -1,92 +1,123 @@
 import { registry } from "@/common/docs/openapi-registry";
+import { z } from "zod";
 import { commonSchema } from "@/common/utils/schema";
-import { createDailyActivityBodySchema, updateDailyActivityBodySchema } from "../daily-activity/daily-activity.dto";
+import {
+  createPlantingCycleBodySchema,
+  updatePlantingCycleBodySchema,
+  getPlantingCycleQuerySchema,
+} from "./planting-cycle.dto";
 
+const PlantingCycleResponseCore = z.object({
+  success: z.boolean().openapi({ example: true }),
+  message: z.string().openapi({ example: "Operasi berhasil" }),
+});
 
-registry.registerPath({
-  method: "post",
-  path: "/daily-activities",
-  tags: ["Daily Activity"],
-  summary: "Catat Aktivitas Harian Baru",
-  description:
-    "Mencatat aktivitas harian baru (seperti penyiraman, pemupukan) untuk siklus tanam yang sedang aktif di sistem Vangrove. Mendukung pencatatan data cuaca (weather_data).",
-  security: [{ bearerAuth: [] }],
-  request: {
-    body: {
-      content: {
-        "application/json": {
-          schema: createDailyActivityBodySchema,
-        },
-      },
-    },
-  },
-  responses: {
-    201: {
-      description: "Aktivitas harian berhasil dicatat",
-      content: {
-        "application/json": {
-          schema: {
-            type: "object",
-            properties: {
-              success: { type: "boolean", example: true },
-              message: {
-                type: "string",
-                example: "Aktivitas harian berhasil dicatat",
-              },
-              data: { $ref: "#/components/schemas/CreateDailyActivityDto" },
-            },
-          },
-        },
-      },
-    },
-    400: { description: "Validasi data gagal atau siklus tidak aktif" },
-    401: { description: "Unauthorized - Token diperlukan" },
-    404: { description: "Siklus tanam tidak ditemukan" },
-  },
+const PlantingCycleDataSchema = z.object({
+  id: z
+    .string()
+    .uuid()
+    .openapi({ example: "550e8400-e29b-41d4-a716-446655440000" }),
+  land_id: z.string().uuid(),
+  commodity_id: z.string().uuid(),
+  variety: z.string().nullable(),
+  planting_method: z.string().nullable(),
+  start_date: z.string().datetime(),
+  estimated_harvest: z.string().datetime().nullable(),
+  status: z.enum(["PLANTING", "HARVESTED", "COMPLETED", "FAILED"]),
+  created_at: z.string().datetime(),
+  commodity: z
+    .object({
+      name: z.string().openapi({ example: "Mangrove Rhizophora" }),
+    })
+    .optional(),
 });
 
 registry.registerPath({
   method: "get",
-  path: "/daily-activities",
-  tags: ["Daily Activity"],
-  summary: "Mengambil semua aktivitas harian",
+  path: "/planting-cycle",
+  tags: ["Planting Cycle"],
+  summary: "Ambil Semua Siklus Tanam",
   description:
-    "Menampilkan daftar seluruh catatan aktivitas harian. Dapat di-filter berdasarkan parameter tertentu (jika diimplementasikan).",
-  security: [{ bearerAuth: [] }],
+    "Mendapatkan daftar siklus tanam dengan filter land_id atau status.",
+  request: {
+    query: getPlantingCycleQuerySchema,
+  },
   responses: {
     200: {
-      description: "Berhasil mengambil daftar aktivitas harian",
+      description: "Daftar siklus ditemukan",
       content: {
         "application/json": {
-          schema: {
-            type: "object",
-            properties: {
-              success: { type: "boolean", example: true },
-              message: {
-                type: "string",
-                example: "Daftar aktivitas harian berhasil diambil",
-              },
-              data: {
-                type: "array",
-                items: { $ref: "#/components/schemas/CreateDailyActivityDto" },
-              },
-            },
-          },
+          schema: PlantingCycleResponseCore.extend({
+            data: z.array(PlantingCycleDataSchema),
+          }),
         },
       },
     },
-    401: { description: "Unauthorized" },
   },
 });
 
 registry.registerPath({
   method: "get",
-  path: "/daily-activities/{id}",
-  tags: ["Daily Activity"],
-  summary: "Detail Aktivitas Harian",
+  path: "/planting-cycle/heatmap-calendar",
+  tags: ["Planting Cycle"],
+  summary: "Data Kalender Heatmap Aktivitas",
   description:
-    "Mendapatkan informasi detail mengenai satu catatan aktivitas harian.",
-  security: [{ bearerAuth: [] }],
+    "Mendapatkan intensitas aktivitas harian dalam siklus tanam untuk visualisasi heatmap.",
+  request: {
+    query: getPlantingCycleQuerySchema,
+  },
+  responses: {
+    200: {
+      description: "Data heatmap berhasil diambil",
+      content: {
+        "application/json": {
+          schema: PlantingCycleResponseCore.extend({
+            data: z.array(
+              z.object({
+                date: z.string().openapi({ example: "2026-05-20" }),
+                count: z.number().openapi({ example: 5 }),
+              }),
+            ),
+          }),
+        },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/planting-cycle/cycle-summary",
+  tags: ["Planting Cycle"],
+  summary: "Ringkasan Statistik Siklus",
+  description:
+    "Mendapatkan data agregat seperti durasi tanam dan jumlah aktivitas.",
+  request: {
+    query: getPlantingCycleQuerySchema,
+  },
+  responses: {
+    200: {
+      description: "Data summary ditemukan",
+      content: {
+        "application/json": {
+          schema: PlantingCycleResponseCore.extend({
+            data: z.object({
+              total_days: z.number().openapi({ example: 45 }),
+              activity_count: z.number().openapi({ example: 120 }),
+              health_status: z.string().openapi({ example: "Optimal" }),
+            }),
+          }),
+        },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/planting-cycle/{id}",
+  tags: ["Planting Cycle"],
+  summary: "Detail Siklus Tanam",
   request: {
     params: commonSchema.paramsId,
   },
@@ -95,94 +126,87 @@ registry.registerPath({
       description: "Data ditemukan",
       content: {
         "application/json": {
-          schema: {
-            type: "object",
-            properties: {
-              success: { type: "boolean", example: true },
-              message: {
-                type: "string",
-                example: "Detail aktivitas harian ditemukan",
-              },
-              data: { $ref: "#/components/schemas/CreateDailyActivityDto" },
-            },
-          },
+          schema: PlantingCycleResponseCore.extend({
+            data: PlantingCycleDataSchema,
+          }),
         },
       },
     },
-    404: { description: "Aktivitas harian tidak ditemukan" },
+    404: { description: "Siklus tidak ditemukan" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/planting-cycle",
+  tags: ["Planting Cycle"],
+  summary: "Mulai Siklus Tanam Baru",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: createPlantingCycleBodySchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Siklus berhasil dibuat",
+      content: {
+        "application/json": {
+          schema: PlantingCycleResponseCore.extend({
+            data: PlantingCycleDataSchema,
+          }),
+        },
+      },
+    },
   },
 });
 
 registry.registerPath({
   method: "patch",
-  path: "/daily-activities/{id}",
-  tags: ["Daily Activity"],
-  summary: "Update Aktivitas Harian",
-  description:
-    "Memperbarui data aktivitas harian yang sudah ada. Hanya field yang dikirim yang akan diubah (partial update).",
-  security: [{ bearerAuth: [] }],
+  path: "/planting-cycle/{id}",
+  tags: ["Planting Cycle"],
+  summary: "Perbarui Data Siklus",
   request: {
     params: commonSchema.paramsId,
     body: {
       content: {
         "application/json": {
-          schema: updateDailyActivityBodySchema,
+          schema: updatePlantingCycleBodySchema,
         },
       },
     },
   },
   responses: {
     200: {
-      description: "Aktivitas harian berhasil diperbarui",
+      description: "Siklus berhasil diperbarui",
       content: {
         "application/json": {
-          schema: {
-            type: "object",
-            properties: {
-              success: { type: "boolean", example: true },
-              message: {
-                type: "string",
-                example: "Aktivitas harian berhasil diperbarui",
-              },
-              data: { $ref: "#/components/schemas/UpdateDailyActivityDto" },
-            },
-          },
+          schema: PlantingCycleResponseCore,
         },
       },
     },
-    400: { description: "Validasi data gagal" },
-    404: { description: "Aktivitas harian tidak ditemukan" },
   },
 });
 
 registry.registerPath({
   method: "delete",
-  path: "/daily-activities/{id}",
-  tags: ["Daily Activity"],
-  summary: "Hapus Aktivitas Harian",
-  description: "Menghapus catatan aktivitas harian dari database.",
-  security: [{ bearerAuth: [] }],
+  path: "/planting-cycle/{id}",
+  tags: ["Planting Cycle"],
+  summary: "Hapus Siklus Tanam",
   request: {
     params: commonSchema.paramsId,
   },
   responses: {
     200: {
-      description: "Aktivitas harian berhasil dihapus",
+      description: "Siklus berhasil dihapus",
       content: {
         "application/json": {
-          schema: {
-            type: "object",
-            properties: {
-              success: { type: "boolean", example: true },
-              message: {
-                type: "string",
-                example: "Aktivitas harian berhasil dihapus",
-              },
-            },
-          },
+          schema: PlantingCycleResponseCore,
         },
       },
     },
-    404: { description: "Aktivitas harian tidak ditemukan" },
   },
 });

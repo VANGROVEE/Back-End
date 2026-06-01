@@ -33,8 +33,6 @@ const moduleRoutes = [
   { path: "/analyze", route: dashboardAnalyzeRoute },
 ];
 
-router.get("/", rootHandler);
-
 moduleRoutes.forEach((route) => {
   route.route(router, route.path);
 });

@@ -1,6 +1,23 @@
 import { registry } from "@/common/docs/openapi-registry";
+import { z } from "zod";
 import { commonSchema } from "@/common/utils/schema";
 import { createCommoditySchema, updateCommoditySchema } from "./comodity.dto";
+
+const CommodityResponseCore = z.object({
+  success: z.boolean().openapi({ example: true }),
+  message: z.string().openapi({ example: "Operasi berhasil" }),
+});
+
+const CommodityDataSchema = z.object({
+  id: z
+    .string()
+    .uuid()
+    .openapi({ example: "550e8400-e29b-41d4-a716-446655440000" }),
+  name: z.string().openapi({ example: "Padi Ciherang" }),
+  slug_ai: z.string().openapi({ example: "rice-paddy" }),
+  is_ai_supported: z.boolean().openapi({ example: true }),
+  category: z.string().openapi({ example: "PANGAN" }),
+});
 
 registry.registerPath({
   method: "get",
@@ -8,26 +25,42 @@ registry.registerPath({
   tags: ["Commodity"],
   summary: "Mengambil semua data komoditas",
   description:
-    "Menampilkan daftar seluruh tanaman/komoditas yang didukung oleh sistem Vangrove beserta status dukungan AI-nya.",
+    "Menampilkan daftar seluruh tanaman yang didukung sistem Vangrove.",
   responses: {
     200: {
-      description: "Berhasil mengambil daftar komoditas",
+      description: "Daftar komoditas ditemukan",
       content: {
         "application/json": {
-          schema: {
-            type: "object",
-            properties: {
-              success: { type: "boolean", example: true },
-              message: {
-                type: "string",
-                example: "Daftar komoditas berhasil diambil",
-              },
-              data: {
-                type: "array",
-                items: { $ref: "#/components/schemas/CreateCommodityBody" },
-              },
-            },
-          },
+          schema: CommodityResponseCore.extend({
+            data: z.array(CommodityDataSchema),
+          }),
+        },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/commodities/stats",
+  tags: ["Commodity"],
+  summary: "Statistik Komoditas",
+  description:
+    "Mendapatkan ringkasan statistik komoditas, seperti total komoditas dan jumlah yang didukung AI.",
+  responses: {
+    200: {
+      description: "Statistik berhasil diambil",
+      content: {
+        "application/json": {
+          schema: CommodityResponseCore.extend({
+            data: z.object({
+              total: z.number().openapi({ example: 45 }),
+              ai_supported: z.number().openapi({ example: 12 }),
+              categories: z
+                .number()
+                .openapi({ example: { PANGAN: 10, MANGROVE: 5 } }),
+            }),
+          }),
         },
       },
     },
@@ -39,13 +72,16 @@ registry.registerPath({
   path: "/commodities/{id}",
   tags: ["Commodity"],
   summary: "Mendapatkan detail satu komoditas",
-  description:
-    "Mengambil informasi detail komoditas, termasuk slug AI dan status dukungan fitur AI berdasarkan ID.",
-  request: {
-    params: commonSchema.paramsId,
-  },
+  request: { params: commonSchema.paramsId },
   responses: {
-    200: { description: "Data komoditas ditemukan" },
+    200: {
+      description: "Data ditemukan",
+      content: {
+        "application/json": {
+          schema: CommodityResponseCore.extend({ data: CommodityDataSchema }),
+        },
+      },
+    },
     404: { description: "Komoditas tidak ditemukan" },
   },
 });
@@ -55,20 +91,45 @@ registry.registerPath({
   path: "/commodities",
   tags: ["Commodity"],
   summary: "Menambahkan komoditas baru",
-  description:
-    "Menambahkan jenis tanaman baru ke dalam sistem master data Vangrove.",
   request: {
     body: {
       content: {
-        "application/json": {
-          schema: createCommoditySchema.shape.body,
-        },
+        "application/json": { schema: createCommoditySchema.shape.body },
       },
     },
   },
   responses: {
     201: { description: "Komoditas berhasil ditambahkan" },
-    400: { description: "Input data tidak valid" },
+    400: { description: "Input tidak valid" },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/commodities/import",
+  tags: ["Commodity"],
+  summary: "Import via Excel",
+  description: "Unggah file .xlsx untuk mass-insert data komoditas.",
+  request: {
+    body: {
+      content: {
+        "multipart/form-data": {
+          schema: z.object({
+            file: z.string().openapi({ type: "string", format: "binary" }),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Import berhasil",
+      content: {
+        "application/json": {
+          schema: CommodityResponseCore,
+        },
+      },
+    },
   },
 });
 
@@ -76,23 +137,18 @@ registry.registerPath({
   method: "patch",
   path: "/commodities/{id}",
   tags: ["Commodity"],
-  summary: "Memperbarui data komoditas",
-  description:
-    "Mengubah informasi komoditas seperti nama, slug AI, atau mengaktifkan/menonaktifkan dukungan fitur AI.",
+  summary: "Update komoditas",
   request: {
     params: commonSchema.paramsId,
     body: {
       content: {
-        "application/json": {
-          schema: updateCommoditySchema.shape.body,
-        },
+        "application/json": { schema: updateCommoditySchema.shape.body },
       },
     },
   },
   responses: {
-    200: { description: "Komoditas berhasil diperbarui" },
-    400: { description: "Input data tidak valid" },
-    404: { description: "Komoditas tidak ditemukan" },
+    200: { description: "Berhasil diperbarui" },
+    404: { description: "Data tidak ditemukan" },
   },
 });
 
@@ -100,62 +156,9 @@ registry.registerPath({
   method: "delete",
   path: "/commodities/{id}",
   tags: ["Commodity"],
-  summary: "Menghapus data komoditas",
-  description: "Menghapus data komoditas dari sistem master data.",
-  request: {
-    params: commonSchema.paramsId,
-  },
+  summary: "Hapus komoditas",
+  request: { params: commonSchema.paramsId },
   responses: {
-    200: { description: "Komoditas berhasil dihapus" },
-    404: { description: "Komoditas tidak ditemukan" },
-  },
-});
-
-
-registry.registerPath({
-  method: "post",
-  path: "/commodities/import",
-  tags: ["Commodity"],
-  summary: "Import Komoditas via Excel",
-  description:
-    "Mengunggah file Excel (.xlsx) untuk menambahkan banyak data komoditas sekaligus.",
-  request: {
-    body: {
-      content: {
-        "multipart/form-data": {
-          schema: {
-            type: "object",
-            properties: {
-              file: {
-                type: "string",
-                format: "binary",
-                description: "File Excel komoditas",
-              },
-            },
-            required: ["file"],
-          },
-        },
-      },
-    },
-  },
-  responses: {
-    201: {
-      description: "Data berhasil diimport",
-      content: {
-        "application/json": {
-          schema: {
-            type: "object",
-            properties: {
-              success: { type: "boolean", example: true },
-              message: {
-                type: "string",
-                example: "15 data komoditas berhasil diimport",
-              },
-            },
-          },
-        },
-      },
-    },
-    400: { description: "File tidak valid atau format salah" },
+    200: { description: "Berhasil dihapus" },
   },
 });

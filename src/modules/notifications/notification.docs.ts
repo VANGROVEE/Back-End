@@ -1,23 +1,28 @@
 import { registry } from "@/common/docs/openapi-registry";
 import { z } from "zod";
+import { commonSchema } from "@/common/utils/schema";
 import { notificationResponseSchema } from "./notification.dto";
 
-const tags = ["Notifications"];
+const NotificationResponseCore = z.object({
+  success: z.boolean().openapi({ example: true }),
+  message: z.string().openapi({ example: "Operasi berhasil" }),
+});
 
 registry.registerPath({
   method: "get",
   path: "/notifications",
+  tags: ["Notifications"],
   summary: "Ambil Semua Notifikasi",
   description:
-    "Mengambil daftar seluruh notifikasi milik user yang sedang login, diurutkan dari yang terbaru.",
-  tags,
-  security: [{ BearerAuth: [] }],
+    "Mendapatkan daftar notifikasi untuk pengguna yang sedang login.",
   responses: {
     200: {
-      description: "Daftar notifikasi berhasil diambil",
+      description: "Daftar notifikasi ditemukan",
       content: {
         "application/json": {
-          schema: z.array(notificationResponseSchema),
+          schema: NotificationResponseCore.extend({
+            data: z.array(notificationResponseSchema),
+          }),
         },
       },
     },
@@ -27,18 +32,17 @@ registry.registerPath({
 registry.registerPath({
   method: "get",
   path: "/notifications/unread-count",
+  tags: ["Notifications"],
   summary: "Jumlah Notifikasi Belum Dibaca",
-  description:
-    "Mendapatkan angka total notifikasi yang memiliki status is_read = false untuk keperluan badge icon.",
-  tags,
-  security: [{ BearerAuth: [] }],
   responses: {
     200: {
-      description: "Berhasil menghitung jumlah unread",
+      description: "Berhasil mengambil jumlah unread",
       content: {
         "application/json": {
-          schema: z.object({
-            count: z.number().openapi({ example: 5 }),
+          schema: NotificationResponseCore.extend({
+            data: z.object({
+              count: z.number().openapi({ example: 5 }),
+            }),
           }),
         },
       },
@@ -49,31 +53,36 @@ registry.registerPath({
 registry.registerPath({
   method: "patch",
   path: "/notifications/read-all",
-  summary: "Tandai Semua Telah Dibaca",
-  description:
-    "Mengubah status seluruh notifikasi milik user menjadi dibaca (is_read: true) secara massal.",
-  tags,
-  security: [{ BearerAuth: [] }],
+  tags: ["Notifications"],
+  summary: "Tandai Semua Sudah Dibaca",
   responses: {
-    200: { description: "Semua notifikasi berhasil diperbarui" },
+    200: {
+      description: "Semua notifikasi berhasil diperbarui",
+      content: {
+        "application/json": {
+          schema: NotificationResponseCore,
+        },
+      },
+    },
   },
 });
 
 registry.registerPath({
   method: "patch",
   path: "/notifications/{id}/read",
-  summary: "Tandai Satu Notifikasi Dibaca",
-  description:
-    "Mengubah status satu notifikasi spesifik menjadi dibaca berdasarkan ID.",
-  tags,
-  security: [{ BearerAuth: [] }],
+  tags: ["Notifications"],
+  summary: "Tandai Satu Notifikasi Sudah Dibaca",
   request: {
-    params: z.object({ id: z.string().uuid() }),
+    params: commonSchema.paramsId,
   },
   responses: {
     200: {
-      description: "Notifikasi berhasil diperbarui",
-      content: { "application/json": { schema: notificationResponseSchema } },
+      description: "Notifikasi diperbarui",
+      content: {
+        "application/json": {
+          schema: NotificationResponseCore,
+        },
+      },
     },
     404: { description: "Notifikasi tidak ditemukan" },
   },
@@ -82,28 +91,37 @@ registry.registerPath({
 registry.registerPath({
   method: "delete",
   path: "/notifications/all",
-  summary: "Bersihkan Kotak Masuk",
-  description:
-    "Menghapus seluruh riwayat notifikasi milik user tanpa terkecuali.",
-  tags,
-  security: [{ BearerAuth: [] }],
+  tags: ["Notifications"],
+  summary: "Hapus Semua Notifikasi",
   responses: {
-    200: { description: "Seluruh notifikasi berhasil dihapic" },
+    200: {
+      description: "Semua notifikasi berhasil dihapus",
+      content: {
+        "application/json": {
+          schema: NotificationResponseCore,
+        },
+      },
+    },
   },
 });
 
 registry.registerPath({
   method: "delete",
   path: "/notifications/{id}",
-  summary: "Hapus Notifikasi",
-  description: "Menghapus satu pesan notifikasi spesifik berdasarkan ID.",
-  tags,
-  security: [{ BearerAuth: [] }],
+  tags: ["Notifications"],
+  summary: "Hapus Satu Notifikasi",
   request: {
-    params: z.object({ id: z.string().uuid() }),
+    params: commonSchema.paramsId,
   },
   responses: {
-    200: { description: "Notifikasi berhasil dihapus" },
+    200: {
+      description: "Notifikasi dihapus",
+      content: {
+        "application/json": {
+          schema: NotificationResponseCore,
+        },
+      },
+    },
     404: { description: "Notifikasi tidak ditemukan" },
   },
 });

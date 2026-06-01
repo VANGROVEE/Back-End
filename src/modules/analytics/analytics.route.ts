@@ -2,7 +2,7 @@ import { authenticate } from "@/common/middlewares/auth";
 import { autoCache } from "@/common/utils/cache";
 import type { Router } from "express";
 import { analyticController } from "./analytics.controller";
-
+import "./analytics.docs";
 export default (router: Router, prefix: string) => {
   router.get(
     `${prefix}/users-active`,

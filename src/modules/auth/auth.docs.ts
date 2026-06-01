@@ -2,34 +2,38 @@ import { registry } from "@/common/docs/openapi-registry";
 import { z } from "zod";
 import { loginSchema, registerSchema, googleLoginSchema } from "./auth.dto";
 
-// --- Reusable Schemas ---
-
 const errorResponseSchema = z.object({
+  success: z.boolean().openapi({ example: false }),
   message: z.string().openapi({ example: "Pesan kesalahan sistem" }),
 });
 
-const authSuccessSchema = z.object({
-  token: z.string().openapi({ example: "eyJhbGciOiJIUzI1NiIsInR..." }),
-  user: z.object({
-    id: z
-      .string()
-      .uuid()
-      .openapi({ example: "550e8400-e29b-41d4-a716-446655440000" }),
-    name: z.string().openapi({ example: "Budi Petani Modern" }),
-    email: z.string().email().openapi({ example: "budi@vangrove.com" }),
-    role: z.string().openapi({ example: "FARMER" }),
-  }),
+const userProfileSchema = z.object({
+  id: z
+    .string()
+    .uuid()
+    .openapi({ example: "550e8400-e29b-41d4-a716-446655440000" }),
+  name: z.string().openapi({ example: "Budi Petani Modern" }),
+  email: z.string().email().openapi({ example: "budi@vangrove.com" }),
+  role: z.enum(["ADMIN", "FARMER"]).openapi({ example: "FARMER" }),
+  avatar_url: z
+    .string()
+    .nullable()
+    .openapi({ example: "https://storage.com/avatar.jpg" }),
 });
 
-// --- Documentation Paths ---
+const authSuccessSchema = z.object({
+  success: z.boolean().openapi({ example: true }),
+  message: z.string().openapi({ example: "Autentikasi Berhasil" }),
+  user: userProfileSchema,
+});
 
-// 1. LOGIN CREDENTIAL
 registry.registerPath({
   method: "post",
   path: "/auth/login",
   tags: ["Auth"],
   summary: "Login Tradisional",
-  description: "Masuk menggunakan email dan password yang terdaftar.",
+  description:
+    "Autentikasi menggunakan email dan password. Mengembalikan data user dan memasang HTTP-Only Cookie.",
   request: {
     body: {
       content: {
@@ -41,23 +45,42 @@ registry.registerPath({
   },
   responses: {
     200: {
-      description: "Berhasil login",
+      description: "Login Berhasil",
       content: { "application/json": { schema: authSuccessSchema } },
     },
     401: {
-      description: "Kredensial salah",
+      description: "Email atau password salah",
       content: { "application/json": { schema: errorResponseSchema } },
     },
   },
 });
 
-// 2. REGISTER ACCOUNT
+registry.registerPath({
+  method: "get",
+  path: "/auth/me",
+  tags: ["Auth"],
+  summary: "Ambil Data Profil Sesi",
+  description:
+    "Mengecek validitas cookie 'be_token' dan mengembalikan profil user yang sedang login.",
+  responses: {
+    200: {
+      description: "Sesi Valid",
+      content: { "application/json": { schema: authSuccessSchema } },
+    },
+    401: {
+      description: "Sesi tidak ditemukan atau kadaluwarsa",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+  },
+});
+
 registry.registerPath({
   method: "post",
   path: "/auth/register",
   tags: ["Auth"],
   summary: "Pendaftaran Akun Baru",
-  description: "Mendaftarkan petani baru ke dalam sistem Vangrove.",
+  description:
+    "Mendaftarkan petani baru. Field password dan confirmPassword harus identik.",
   request: {
     body: {
       content: {
@@ -69,24 +92,23 @@ registry.registerPath({
   },
   responses: {
     201: {
-      description: "Registrasi Berhasil",
+      description: "Akun Berhasil Dibuat",
       content: { "application/json": { schema: authSuccessSchema } },
     },
     400: {
-      description: "Validasi Gagal",
+      description: "Validasi gagal atau email sudah digunakan",
       content: { "application/json": { schema: errorResponseSchema } },
     },
   },
 });
 
-// 3. GOOGLE LOGIN (NEW)
 registry.registerPath({
   method: "post",
   path: "/auth/google",
   tags: ["Auth"],
   summary: "Login/Register via Google",
   description:
-    "Autentikasi menggunakan Google ID Token. Jika user belum terdaftar, sistem akan otomatis membuatkan akun.",
+    "Autentikasi via Google OAuth2 ID Token. Jika email baru, akun akan otomatis dibuat (Upsert).",
   request: {
     body: {
       content: {
@@ -98,11 +120,11 @@ registry.registerPath({
   },
   responses: {
     200: {
-      description: "Berhasil autentikasi via Google",
+      description: "Google Auth Berhasil",
       content: { "application/json": { schema: authSuccessSchema } },
     },
     400: {
-      description: "Token tidak valid",
+      description: "ID Token tidak valid",
       content: { "application/json": { schema: errorResponseSchema } },
     },
   },
