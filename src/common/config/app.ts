@@ -28,7 +28,7 @@ app.use(cookieParser());
 app.use(express.urlencoded({ extended: false }));
 
 setupSwagger(app);
-app.use("/", rootHandler);
+app.get("/", rootHandler);
 app.use("/api/v1", router);
 
 app.use(notFoundHandler);
