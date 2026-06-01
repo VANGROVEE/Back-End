@@ -8,14 +8,14 @@ export const loginSchema = z.object({
     email: z
       .string()
       .email("Format email tidak valid")
-      .openapi({ example: "budi@vangrove.com" }), // Contoh email
-    password: z.string().min(6).openapi({ example: "secretpassword123" }), // Contoh password
+      .openapi({ example: "budi@vangrove.com" }),
+    password: z.string().min(6).openapi({ example: "secretpassword123" }),
   }),
 });
 
 export const googleLoginSchema = z.object({
   body: z.object({
-    token: z.string().openapi({ example: "eyJhbGciOiJSUzI1NiIsImtpZCI6..." }), // Contoh JWT Google
+    idToken: z.string().openapi({ example: "eyJhbGciOiJSUzI1NiIsImtpZCI6..." }),
   }),
 });
 

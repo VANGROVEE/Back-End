@@ -2,7 +2,7 @@ import cors from "cors";
 import "dotenv/config";
 import express, { type Express } from "express";
 import helmet from "helmet";
-
+import cookieParser from "cookie-parser";
 import router from "@/routes";
 import { globalErrorHandler } from "../middlewares/global-error-handler";
 import { notFoundHandler } from "../middlewares/notFound";
@@ -23,6 +23,7 @@ app.use(
 app.use(httpLogger);
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.urlencoded({ extended: false }));
 
 setupSwagger(app);

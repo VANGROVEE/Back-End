@@ -5,6 +5,55 @@ import { cacheHelper } from "@/common/utils/cache";
 import type { LoginDto, RegisterAuhtDto, UpdateAuthDto } from "./auth.dto";
 
 export const authService = {
+  getMe: async (token: string) => {
+    const {
+      data: { user: supabaseUser },
+      error,
+    } = await supabase.auth.getUser(token);
+
+    if (error || !supabaseUser) {
+      throw new ApiError(401, "Sesi expired, silakan login ulang");
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: supabaseUser.email },
+    });
+
+    if (!user) {
+      throw new ApiError(404, "User belum terdaftar di database kami");
+    }
+
+    return { user, token };
+  },
+
+  googleLogin: async (token: string) => {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      throw new ApiError(
+        401,
+        `Google login failed: ${error?.message || "Invalid Token"}`,
+      );
+    }
+
+    const updatedUser = await prisma.user.upsert({
+      where: { id: user.id },
+      update: {
+        email: user.email!,
+        name: user.user_metadata.full_name || user.user_metadata.name,
+      },
+      create: {
+        id: user.id,
+        email: user.email!,
+        name: user.user_metadata.full_name || user.user_metadata.name,
+      },
+    });
+
+    return { user: updatedUser, token };
+  },
   login: async (payload: LoginDto) => {
     const { email, password } = payload;
 
@@ -24,6 +73,7 @@ export const authService = {
   register: async (payload: RegisterAuhtDto) => {
     const { email, password, name } = payload;
 
+    // 1. Lakukan pendaftaran ke Supabase
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -37,17 +87,46 @@ export const authService = {
     if (authError) throw new ApiError(400, authError.message);
     if (!authData.user) throw new ApiError(400, "Registration failed");
 
-    const user = await prisma.user.findUnique({
+    // 2. Sinkronisasi ke Prisma (Gunakan ID dari Supabase)
+    // Kita gunakan upsert agar lebih aman jika terjadi race condition dengan trigger/webhook
+    const user = await prisma.user.upsert({
       where: { id: authData.user.id },
+      update: {
+        email,
+        name,
+      },
+      create: {
+        id: authData.user.id,
+        email,
+        name,
+        role: "FARMER", // Default role
+      },
     });
 
+    // 3. Bersihkan Cache
     await Promise.all([
       cacheHelper.deletePattern("users:all:*"),
       cacheHelper.deletePattern("cache:*users*"),
       cacheHelper.delete("users:stats"),
     ]);
 
-    return { user: user || authData.user };
+    /**
+     * 4. Panggil method login internal atau kembalikan session dari signUp Jika
+     *    'Confirm Email' di Supabase OFF, authData.session sudah terisi
+     *    otomatis. Jika ON, maka user harus verifikasi dulu (session akan
+     *    null).
+     */
+    if (authData.session) {
+      return {
+        user,
+        session: authData.session,
+      };
+    }
+
+    // Jika butuh login ulang secara paksa (opsional):
+    // return await authService.login({ email, password });
+
+    return { user };
   },
 
   update: async (currentId: string, payload: UpdateAuthDto) => {
